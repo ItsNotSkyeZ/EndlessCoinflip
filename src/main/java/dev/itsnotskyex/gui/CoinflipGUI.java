@@ -29,6 +29,7 @@ public class CoinflipGUI implements Listener {
     private final Map<Inventory, MatchUIData>  matchUIs      = new HashMap<>();
     private final Map<UUID, CoinflipMatch>     pendingJoin   = new HashMap<>();
     private final Map<UUID, Double>            pendingBot    = new HashMap<>();
+    private final Map<Inventory, WoolColor>    excludedColors = new HashMap<>();
     private final Set<UUID>                    transitioning = new HashSet<>();
 
     private enum GuiType { MAIN, COLOR_PICKER, MATCH, BOT_MATCH, JOIN_CONFIRM }
@@ -74,11 +75,16 @@ public class CoinflipGUI implements Listener {
     }
 
     public void openColorPicker(Player player, double wager) {
+        openColorPicker(player, wager, null);
+    }
+
+    public void openColorPicker(Player player, double wager, WoolColor exclude) {
         Inventory inv = Bukkit.createInventory(null, 9, c(cfg("color-picker-title")));
         WoolColor[] colors = WoolColor.values();
-        for (int i = 0; i < colors.length; i++) inv.setItem(i, makeColorItem(colors[i], wager));
+        for (int i = 0; i < colors.length; i++) inv.setItem(i, makeColorItem(colors[i], wager, colors[i] == exclude));
         track(inv, GuiType.COLOR_PICKER, player);
         pendingWagers.put(inv, wager);
+        if (exclude != null) excludedColors.put(inv, exclude);
         player.openInventory(inv);
     }
 
@@ -104,21 +110,21 @@ public class CoinflipGUI implements Listener {
         player.openInventory(inv);
     }
 
-    public void openMatchUI(Player player, CoinflipMatch match, WoolColor joinerColor, boolean isHost, boolean joinerWins) {
+    public void openMatchUI(Player viewer, CoinflipMatch match, Player joiner, WoolColor joinerColor, boolean isHost, boolean joinerWins) {
         Inventory inv = Bukkit.createInventory(null, 9, c(cfg("match-title", "wager", CoinflipManager.fmt(match.wager))));
         fill(inv, Material.BLACK_STAINED_GLASS_PANE);
 
-        inv.setItem(0, makeSkull(match.hostName, match.hostColor.chatColor, ratio(match.hostUuid)));
+        inv.setItem(0, makeSkull(match.hostName, match.hostUuid, match.hostColor.chatColor, ratio(match.hostUuid)));
         inv.setItem(1, silentPane(match.hostColor.paneMaterial));
         inv.setItem(7, silentPane(joinerColor.paneMaterial));
-        inv.setItem(8, makeSkull(player.getName(), joinerColor.chatColor, ratio(player.getUniqueId())));
+        inv.setItem(8, makeSkull(joiner.getName(), joiner.getUniqueId(), joinerColor.chatColor, ratio(joiner.getUniqueId())));
         inv.setItem(4, makeCountdown(5));
 
         MatchUIData data = new MatchUIData(match, joinerColor, isHost, joinerWins);
-        track(inv, GuiType.MATCH, player);
+        track(inv, GuiType.MATCH, viewer);
         matchUIs.put(inv, data);
-        player.openInventory(inv);
-        startMatchAnim(player, inv, match, joinerColor, isHost, joinerWins);
+        viewer.openInventory(inv);
+        startMatchAnim(viewer, inv, match, joiner, joinerColor, isHost, joinerWins);
     }
 
     public void openBotMatchUI(Player player, double wager, WoolColor playerColor) {
@@ -138,7 +144,7 @@ public class CoinflipGUI implements Listener {
         inv.setItem(0, makeItem(Material.SKELETON_SKULL, cfg("bot-skull-name")));
         inv.setItem(1, silentPane(botColor.paneMaterial));
         inv.setItem(7, silentPane(playerColor.paneMaterial));
-        inv.setItem(8, makeSkull(player.getName(), playerColor.chatColor, ratio(player.getUniqueId())));
+        inv.setItem(8, makeSkull(player.getName(), player.getUniqueId(), playerColor.chatColor, ratio(player.getUniqueId())));
         inv.setItem(4, makeCountdown(5));
 
         track(inv, GuiType.BOT_MATCH, player);
@@ -147,30 +153,30 @@ public class CoinflipGUI implements Listener {
         startBotAnim(player, inv, wager, playerColor, botColor);
     }
 
-    private void startMatchAnim(Player player, Inventory inv, CoinflipMatch match,
+    private void startMatchAnim(Player viewer, Inventory inv, CoinflipMatch match, Player joiner,
                                 WoolColor joinerColor, boolean isHost, boolean joinerWins) {
-        countdown(player, inv);
+        countdown(viewer, inv);
         plugin.getServer().getScheduler().runTaskLater(plugin, () ->
-                colorFlip(player, inv, match.hostColor, match.hostName, joinerColor, player.getName(), 0, 30, () -> {
+                colorFlip(viewer, inv, match.hostColor, match.hostName, joinerColor, joiner.getName(), 0, 30, () -> {
                     WoolColor winner = joinerWins ? joinerColor : match.hostColor;
-                    String winnerName = joinerWins ? player.getName() : match.hostName;
+                    String winnerName = joinerWins ? joiner.getName() : match.hostName;
                     inv.setItem(4, namedPane(winner.paneMaterial, c(cfg("winner-pane", "color", winner.chatColor, "name", winnerName))));
                     boolean thisPlayerWins = isHost != joinerWins;
                     boolean resolved = true;
                     if (!isHost) {
-                        resolved = plugin.getCoinflipManager().resolveMatch(player, match, joinerWins);
+                        resolved = plugin.getCoinflipManager().resolveMatch(viewer, match, joinerWins);
                         Player host = plugin.getServer().getPlayer(match.hostUuid);
                         if (!resolved) {
-                            player.sendMessage(cfg("insufficient-funds-join"));
+                            viewer.sendMessage(cfg("insufficient-funds-join"));
                             if (host != null) host.sendMessage(cfg("match-no-longer-exists"));
                         } else {
-                            if (host != null) host.sendMessage(cfg(joinerWins ? "you-lost" : "you-won", "opponent", player.getName(), "wager", CoinflipManager.fmt(match.wager)));
-                            player.sendMessage(cfg(joinerWins ? "you-won" : "you-lost", "opponent", match.hostName, "wager", CoinflipManager.fmt(match.wager)));
+                            if (host != null) host.sendMessage(cfg(joinerWins ? "you-lost" : "you-won", "opponent", viewer.getName(), "wager", CoinflipManager.fmt(match.wager)));
+                            viewer.sendMessage(cfg(joinerWins ? "you-won" : "you-lost", "opponent", match.hostName, "wager", CoinflipManager.fmt(match.wager)));
                         }
                     }
-                    if (resolved) plugin.getSoundManager().play(player, thisPlayerWins ? "win" : "lose");
+                    if (resolved) plugin.getSoundManager().play(viewer, thisPlayerWins ? "win" : "lose");
                     MatchUIData md = matchUIs.get(inv); if (md != null) md.animating = false;
-                    plugin.getServer().getScheduler().runTaskLater(plugin, () -> { if (guiTypes.containsKey(inv)) player.closeInventory(); }, 60L);
+                    plugin.getServer().getScheduler().runTaskLater(plugin, () -> { if (guiTypes.containsKey(inv)) viewer.closeInventory(); }, 60L);
                 }), 100L);
     }
 
@@ -269,7 +275,7 @@ public class CoinflipGUI implements Listener {
             if (plugin.getConfigManager().isJoinConfirmationEnabled()) {
                 openJoinConfirm(player, match);
             } else {
-                openColorPicker(player, match.wager);
+                openColorPicker(player, match.wager, match.hostColor);
                 pendingJoin.put(player.getUniqueId(), match);
             }
         }
@@ -312,13 +318,18 @@ public class CoinflipGUI implements Listener {
         transitioning.add(player.getUniqueId());
         player.closeInventory();
         transitioning.remove(player.getUniqueId());
-        openColorPicker(player, match.wager);
+        openColorPicker(player, match.wager, match.hostColor);
     }
 
     private void handleColorPicker(Player player, Inventory inv, int slot) {
         WoolColor[] colors = WoolColor.values();
         if (slot < 0 || slot >= colors.length) return;
         WoolColor chosen = colors[slot];
+        WoolColor excluded = excludedColors.get(inv);
+        if (excluded != null && chosen == excluded) {
+            player.sendMessage(cfg("color-taken"));
+            return;
+        }
         double wager = pendingWagers.getOrDefault(inv, 0.0);
         transitioning.add(player.getUniqueId());
         player.closeInventory();
@@ -331,13 +342,14 @@ public class CoinflipGUI implements Listener {
         if (pending != null) {
             CoinflipMatch match = plugin.getCoinflipManager().getMatchByHost(pending.hostUuid);
             if (match == null || match != pending) { player.sendMessage(cfg("match-no-longer-exists")); return; }
+            if (chosen == match.hostColor) { player.sendMessage(cfg("color-taken")); return; }
             plugin.getCoinflipManager().removeMatch(pending.hostUuid);
             plugin.getCoinflipManager().startCooldown(player.getUniqueId());
             plugin.getCoinflipManager().startCooldown(pending.hostUuid);
             boolean joinerWins = new Random().nextBoolean();
-            openMatchUI(player, match, chosen, false, joinerWins);
+            openMatchUI(player, match, player, chosen, false, joinerWins);
             Player host = plugin.getServer().getPlayer(pending.hostUuid);
-            if (host != null) openMatchUI(host, match, chosen, true, joinerWins);
+            if (host != null) openMatchUI(host, match, player, chosen, true, joinerWins);
         } else {
             if (!plugin.getCoinflipManager().createMatch(player, wager, chosen)) {
                 player.sendMessage(cfg("insufficient-funds-create")); return;
@@ -410,6 +422,7 @@ public class CoinflipGUI implements Listener {
         owners.remove(inv);
         pendingWagers.remove(inv);
         matchUIs.remove(inv);
+        excludedColors.remove(inv);
     }
 
     private ItemStack makeMatchSlot(CoinflipMatch match, Player viewer) {
@@ -466,7 +479,15 @@ public class CoinflipGUI implements Listener {
         return namedPane(mat, c(name));
     }
 
-    private ItemStack makeColorItem(WoolColor color, double wager) {
+    private ItemStack makeColorItem(WoolColor color, double wager, boolean taken) {
+        if (taken) {
+            ItemStack item = new ItemStack(Material.BARRIER);
+            ItemMeta meta = item.getItemMeta();
+            meta.setDisplayName(c(cfg("color-item-taken-name", "color", color.chatColor, "colorName", color.displayName)));
+            meta.setLore(List.of(cfg("color-item-taken-lore")));
+            item.setItemMeta(meta);
+            return item;
+        }
         ItemStack item = new ItemStack(color.woolMaterial);
         ItemMeta meta = item.getItemMeta();
         meta.setDisplayName(c(cfg("color-item-name", "color", color.chatColor, "colorName", color.displayName)));
@@ -483,10 +504,10 @@ public class CoinflipGUI implements Listener {
         return item;
     }
 
-    private ItemStack makeSkull(String name, String chatColor, String ratio) {
+    private ItemStack makeSkull(String name, UUID uuid, String chatColor, String ratio) {
         ItemStack item = new ItemStack(Material.PLAYER_HEAD);
         SkullMeta meta = (SkullMeta) item.getItemMeta();
-        meta.setOwningPlayer(Bukkit.getOfflinePlayer(name));
+        meta.setOwningPlayer(Bukkit.getOfflinePlayer(uuid));
         meta.setDisplayName(chatColor + org.bukkit.ChatColor.BOLD + name);
         meta.setLore(List.of(cfg("player-skull-lore", "ratio", ratio)));
         item.setItemMeta(meta);

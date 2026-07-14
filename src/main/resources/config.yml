@@ -58,6 +58,9 @@ gui:
   color-item-lore-1: "&7Choose this colour for your coinflip."
   color-item-lore-2: "&7Wager: &f{wager}"
 
+  color-item-taken-name: "&7&m{colorName}"
+  color-item-taken-lore: "&cAlready chosen by your opponent."
+
   countdown-pane: "&a&l{count}"
   winner-pane: "{color}&l{name} wins!"
   player-skull-lore: "&7W/L: &f{ratio}"

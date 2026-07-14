@@ -27,6 +27,7 @@ no-active-match: "&c&l(!) &cYou don't have an active match to cancel."
 match-no-longer-exists: "&c&l(!) &cThat match no longer exists."
 match-expired: "&c&l(!) &cYour match expired with no opponent and your wager of &7{wager} &cwas refunded."
 cooldown-active: "&c&l(!) &cYou must wait &7{time}s &cbefore playing again."
+color-taken: "&c&l(!) &cYour opponent already chose that colour. Pick another."
 
 you-won: "&a&l[!] &aYou won &f{wager} &aagainst &f{opponent}&a!"
 you-lost: "&c&l[!] &cYou lost &f{wager} &cto &f{opponent}&c."
