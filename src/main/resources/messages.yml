@@ -38,6 +38,7 @@ bot-battle-invalid-amount: "&c&l(!) &cInvalid amount entered."
 pending-payout: "&a&l[!] &aYou received a pending coinflip payout of &f{amount}&a!"
 
 reload-success: "&a&l(!) &aConfig reloaded successfully."
+reload-failed: "&c&l(!) &cConfig failed to reload — check console for a YAML error. Your previous settings are still active."
 
 help-cmd-main: "&b/cf &f— Open the coinflip menu"
 help-cmd-wager: "&b/cf &f<wager|all|half> &f— Create a match"

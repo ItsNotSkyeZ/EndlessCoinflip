@@ -21,11 +21,29 @@ public class ConfigManager {
         loadMessages();
     }
 
-    public void reload() {
+    public boolean reload() {
         plugin.saveDefaultConfig();
+
+        File configFile = new File(plugin.getDataFolder(), "config.yml");
+        try {
+            new YamlConfiguration().load(configFile);
+        } catch (Exception e) {
+            plugin.getLogger().severe("config.yml failed to parse — reload aborted, previous settings are still active: " + e.getMessage());
+            return false;
+        }
+
+        File messagesFile = new File(plugin.getDataFolder(), "messages.yml");
+        try {
+            new YamlConfiguration().load(messagesFile);
+        } catch (Exception e) {
+            plugin.getLogger().severe("messages.yml failed to parse — reload aborted, previous settings are still active: " + e.getMessage());
+            return false;
+        }
+
         plugin.reloadConfig();
         plugin.getConfig().options().copyDefaults(false);
         loadMessages();
+        return true;
     }
 
     private void loadMessages() {

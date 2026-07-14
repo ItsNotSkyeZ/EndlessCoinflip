@@ -38,8 +38,11 @@ public class CoinflipCommand implements CommandExecutor, TabCompleter {
                     msg(sender, "no-permission");
                     return true;
                 }
-                plugin.getConfigManager().reload();
-                msg(sender, "reload-success");
+                if (plugin.getConfigManager().reload()) {
+                    msg(sender, "reload-success");
+                } else {
+                    msg(sender, "reload-failed");
+                }
                 return true;
             }
 
