@@ -1,0 +1,203 @@
+# =============================================
+#           EndlessCoinflip by ItsNotSkyeX
+#   A feature-rich Coinflip plugin for
+#   any Spigot/Paper server with Vault.
+#
+#   Use & for colour codes e.g. &a = green
+#   Placeholders: {wager}, {opponent}, etc.
+# =============================================
+
+features:
+  bot-battles: true
+  join-confirmation: true
+
+# Switching type auto-migrates data from whatever backend was previously
+# active into the new one on next startup, then backs up the old data
+# (renamed folder for FILE, renamed tables for SQLITE/MYSQL) instead of
+# deleting it.
+storage:
+  type: FILE # FILE, SQLITE, or MYSQL
+
+  sqlite:
+    file: playerdata.db
+
+  mysql:
+    host: localhost
+    port: 3306
+    database: coinflip
+    username: root
+    password: ""
+    use-ssl: false
+
+settings:
+  min-wager: 100
+  max-wager: 1000000
+  max-active-matches: 6
+
+gui:
+  main-title: "&0Coinflip"
+  color-picker-title: "&0Choose Your Colour"
+  match-title: "&0Coinflip &8— &f{wager}"
+
+  match-slot-name: "{color}&l{host}'s Match"
+  match-slot-wager: "&7Wager: &f{wager}"
+  match-slot-color: "&7Colour: {color}{colorName}"
+  match-slot-join: "&aClick to join!"
+  match-slot-waiting: "&7(Your match — waiting for opponent)"
+
+  bot-battle-name: "&b&lBot Battle"
+  bot-battle-lore: "&7Challenge the Coinflip Bot!"
+  bot-skull-name: "&7&lCoinflip Bot"
+
+  help-name: "&b&lHelp"
+
+  refresh-name: "&b&lRefresh"
+  refresh-lore: "&7Click to refresh the lobby."
+
+  color-item-name: "{color}&l{colorName}"
+  color-item-lore-1: "&7Choose this colour for your coinflip."
+  color-item-lore-2: "&7Wager: &f{wager}"
+
+  countdown-pane: "&a&l{count}"
+  winner-pane: "{color}&l{name} wins!"
+  player-skull-lore: "&7W/L: &f{ratio}"
+
+# Sound names must match a Bukkit Sound enum value.
+sounds:
+  win:
+    sound: UI_TOAST_CHALLENGE_COMPLETE
+    volume: 1.0
+    pitch: 1.5
+
+  lose:
+    sound: UI_TOAST_CHALLENGE_COMPLETE
+    volume: 1.0
+    pitch: 1.0
+
+  countdown:
+    sound: BLOCK_NOTE_BLOCK_HAT
+    volume: 1.0
+    pitch: 0.8
+    pitch-step: 0.1
+
+  roll:
+    sound: UI_BUTTON_CLICK
+    volume: 0.5
+    pitch: 0.8
+    pitch-step: 0.06
+
+# gui-size must be a multiple of 9 (9-54). Bottom row is reserved for navigation.
+history:
+  max-stored: 200
+  gui-size: 54
+  title: "&0Coinflip History &8({page}/{pages})"
+  empty-material: BLACK_STAINED_GLASS_PANE
+
+  win-material: LIME_STAINED_GLASS_PANE
+  lose-material: RED_STAINED_GLASS_PANE
+  entry-win-name: "&a&lWON &8vs &f{opponent}"
+  entry-lose-name: "&c&lLOST &8vs &f{opponent}"
+  entry-lore:
+    - "&7Wager: &f{wager}"
+    - "&7Opponent Type: &f{type}"
+    - "&7Date: &f{date}"
+  date-format: "dd/MM/yyyy HH:mm"
+
+  previous-slot: 45
+  next-slot: 53
+  previous-material: ARROW
+  previous-name: "&b&l« Previous Page"
+  next-material: ARROW
+  next-name: "&b&lNext Page »"
+  no-previous-page: "&cYou're already on the first page."
+  no-next-page: "&cYou're already on the last page."
+
+cooldowns:
+  enabled: true
+  seconds: 5
+
+match-expiry:
+  enabled: true
+  minutes: 10
+  check-interval-seconds: 30 # requires a restart to take effect
+
+# Toggle is under features.join-confirmation above.
+join-confirm:
+  title: "&0Confirm Join"
+  info-slot: 4
+  info-name: "{color}&l{host}'s Match"
+  info-lore:
+    - "&7Wager: &f{wager}"
+    - "&7Colour: {color}{colorName}"
+    - ""
+    - "&7Confirm below to join this match."
+  confirm-slot: 3
+  confirm-material: LIME_STAINED_GLASS_PANE
+  confirm-name: "&a&lConfirm"
+  cancel-slot: 5
+  cancel-material: RED_STAINED_GLASS_PANE
+  cancel-name: "&c&lCancel"
+
+# sort-by: wins, losses, total-wagered, total-won, biggest-win, biggest-loss
+leaderboard:
+  enabled: true
+  sort-by: total-won
+  gui: false
+
+  entries-per-page: 10
+  chat-header:
+    - "&0&m                                        "
+    - "  &b&lCoinflip Leaderboard &8({page}/{pages})"
+    - "&0&m                                        "
+  chat-entry: "  &7#{rank} &f{name} &8— &b{value}"
+  chat-footer:
+    - "&0&m                                        "
+  chat-empty: "&cNo leaderboard data yet."
+
+  gui-size: 54
+  gui-title: "&0Leaderboard &8({page}/{pages})"
+  empty-material: BLACK_STAINED_GLASS_PANE
+  entry-name: "&b&l#{rank} &f{name}"
+  entry-lore:
+    - "&7Wins: &f{wins}"
+    - "&7Losses: &f{losses}"
+    - "&7Total Wagered: &f{wagered}"
+    - "&7Total Won: &f{won}"
+    - "&7Biggest Win: &f{biggestWin}"
+    - "&7Biggest Loss: &f{biggestLoss}"
+  previous-slot: 45
+  next-slot: 53
+  previous-material: ARROW
+  previous-name: "&b&l« Previous Page"
+  next-material: ARROW
+  next-name: "&b&lNext Page »"
+  no-previous-page: "&cYou're already on the first page."
+  no-next-page: "&cYou're already on the last page."
+
+# Placeholder reference
+#  {wager}       — wager amount
+#  {opponent}    — opponent's name, or "Coinflip Bot"
+#  {min}         — configured minimum wager
+#  {max}         — configured maximum wager
+#  {time}        — cooldown seconds remaining
+#  {amount}      — pending (offline) payout amount
+#  {wins}        — player's win count
+#  {losses}      — player's loss count
+#  {wagered}     — player's total amount wagered
+#  {won}         — player's total amount won
+#  {win}         — biggest single win (messages.yml stats list only)
+#  {loss}        — biggest single loss (messages.yml stats list only)
+#  {biggestWin}  — biggest single win (leaderboard.entry-lore only)
+#  {biggestLoss} — biggest single loss (leaderboard.entry-lore only)
+#  {color}       — a wool colour's chat colour code
+#  {colorName}   — a wool colour's display name, e.g. "Red"
+#  {host}        — the match host's name
+#  {name}        — a player's name
+#  {count}       — the countdown number (5-1)
+#  {ratio}       — a player's win:loss ratio
+#  {page}        — current page number
+#  {pages}       — total page count
+#  {type}        — "Player" or "Coinflip Bot" (history.entry-lore only)
+#  {date}        — formatted date (history.entry-lore only)
+#  {rank}        — leaderboard position
+#  {value}       — leaderboard entry's sorted stat (leaderboard.chat-entry only)
