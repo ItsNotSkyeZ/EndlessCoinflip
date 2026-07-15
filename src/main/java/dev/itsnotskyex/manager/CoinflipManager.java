@@ -87,14 +87,34 @@ public class CoinflipManager {
         return null;
     }
 
-    public boolean resolveMatch(Player joiner, CoinflipMatch match, boolean joinerWon) {
+    public static class ResolveResult {
+        public final boolean success;
+        public final double payout; // winner's total payout after server tax, 0 if there is no winner payout to report
+        public final double taxAmount;
+
+        public ResolveResult(boolean success, double payout, double taxAmount) {
+            this.success   = success;
+            this.payout    = payout;
+            this.taxAmount = taxAmount;
+        }
+    }
+
+    private double[] applyTax(double total) {
+        double taxPercent = plugin.getConfigManager().getServerTaxPercent();
+        double taxAmount = total * (taxPercent / 100.0);
+        return new double[]{total - taxAmount, taxAmount};
+    }
+
+    public ResolveResult resolveMatch(Player joiner, CoinflipMatch match, boolean joinerWon) {
         if (!plugin.getEconomy().has(joiner, match.wager)) {
             plugin.getEconomy().depositPlayer(plugin.getServer().getOfflinePlayer(match.hostUuid), match.wager);
-            return false;
+            return new ResolveResult(false, 0, 0);
         }
         plugin.getEconomy().withdrawPlayer(joiner, match.wager);
 
-        double total = match.wager * 2;
+        double[] taxed = applyTax(match.wager * 2);
+        double payout = taxed[0];
+        double taxAmount = taxed[1];
         int maxHistory = plugin.getConfigManager().getMaxHistoryStored();
         long now = System.currentTimeMillis();
         PlayerData joinerData = plugin.getPlayerDataManager().get(joiner.getUniqueId());
@@ -103,71 +123,61 @@ public class CoinflipManager {
         Player onlineHost = plugin.getServer().getPlayer(match.hostUuid);
 
         if (joinerWon) {
-            plugin.getEconomy().depositPlayer(joiner, total);
+            plugin.getEconomy().depositPlayer(joiner, payout);
             joinerData.setWins(joinerData.getWins() + 1);
-            joinerData.setTotalWon(joinerData.getTotalWon() + total);
+            joinerData.setTotalWon(joinerData.getTotalWon() + payout);
             if (match.wager > joinerData.getBiggestWin()) joinerData.setBiggestWin(match.wager);
             joinerData.addHistoryEntry(new MatchHistoryEntry(match.hostName, match.wager, true, false, now), maxHistory);
             plugin.getPlayerDataManager().save(joinerData);
 
-            if (onlineHost != null) {
-                PlayerData hd = plugin.getPlayerDataManager().get(match.hostUuid);
-                hd.setLosses(hd.getLosses() + 1);
-                hd.setTotalWagered(hd.getTotalWagered() + match.wager);
-                if (match.wager > hd.getBiggestLoss()) hd.setBiggestLoss(match.wager);
-                hd.addHistoryEntry(new MatchHistoryEntry(joiner.getName(), match.wager, false, false, now), maxHistory);
-                plugin.getPlayerDataManager().save(hd);
-            } else {
-                PlayerData hd = plugin.getPlayerDataManager().get(match.hostUuid);
-                hd.setLosses(hd.getLosses() + 1);
-                hd.setTotalWagered(hd.getTotalWagered() + match.wager);
-                if (match.wager > hd.getBiggestLoss()) hd.setBiggestLoss(match.wager);
-                hd.addHistoryEntry(new MatchHistoryEntry(joiner.getName(), match.wager, false, false, now), maxHistory);
-                plugin.getPlayerDataManager().save(hd);
-            }
+            PlayerData hd = plugin.getPlayerDataManager().get(match.hostUuid);
+            hd.setLosses(hd.getLosses() + 1);
+            hd.setTotalWagered(hd.getTotalWagered() + match.wager);
+            if (match.wager > hd.getBiggestLoss()) hd.setBiggestLoss(match.wager);
+            hd.addHistoryEntry(new MatchHistoryEntry(joiner.getName(), match.wager, false, false, now), maxHistory);
+            plugin.getPlayerDataManager().save(hd);
         } else {
             joinerData.setLosses(joinerData.getLosses() + 1);
             if (match.wager > joinerData.getBiggestLoss()) joinerData.setBiggestLoss(match.wager);
             joinerData.addHistoryEntry(new MatchHistoryEntry(match.hostName, match.wager, false, false, now), maxHistory);
             plugin.getPlayerDataManager().save(joinerData);
 
+            PlayerData hd = plugin.getPlayerDataManager().get(match.hostUuid);
+            hd.setWins(hd.getWins() + 1);
+            hd.setTotalWagered(hd.getTotalWagered() + match.wager);
+            hd.setTotalWon(hd.getTotalWon() + payout);
+            if (match.wager > hd.getBiggestWin()) hd.setBiggestWin(match.wager);
             if (onlineHost != null) {
-                plugin.getEconomy().depositPlayer(onlineHost, total);
-                PlayerData hd = plugin.getPlayerDataManager().get(match.hostUuid);
-                hd.setWins(hd.getWins() + 1);
-                hd.setTotalWagered(hd.getTotalWagered() + match.wager);
-                hd.setTotalWon(hd.getTotalWon() + total);
-                if (match.wager > hd.getBiggestWin()) hd.setBiggestWin(match.wager);
-                hd.addHistoryEntry(new MatchHistoryEntry(joiner.getName(), match.wager, true, false, now), maxHistory);
-                plugin.getPlayerDataManager().save(hd);
+                plugin.getEconomy().depositPlayer(onlineHost, payout);
             } else {
-                PlayerData hd = plugin.getPlayerDataManager().get(match.hostUuid);
-                hd.setWins(hd.getWins() + 1);
-                hd.setTotalWagered(hd.getTotalWagered() + match.wager);
-                hd.setTotalWon(hd.getTotalWon() + total);
-                if (match.wager > hd.getBiggestWin()) hd.setBiggestWin(match.wager);
-                hd.setPendingPayout(hd.getPendingPayout() + total);
-                hd.addHistoryEntry(new MatchHistoryEntry(joiner.getName(), match.wager, true, false, now), maxHistory);
-                plugin.getPlayerDataManager().save(hd);
+                hd.setPendingPayout(hd.getPendingPayout() + payout);
             }
+            hd.addHistoryEntry(new MatchHistoryEntry(joiner.getName(), match.wager, true, false, now), maxHistory);
+            plugin.getPlayerDataManager().save(hd);
         }
-        return true;
+        return new ResolveResult(true, payout, taxAmount);
     }
 
-    public void resolveBotMatch(Player player, double wager, boolean playerWon) {
+    public ResolveResult resolveBotMatch(Player player, double wager, boolean playerWon) {
         PlayerData data = plugin.getPlayerDataManager().get(player.getUniqueId());
         data.setTotalWagered(data.getTotalWagered() + wager);
+        ResolveResult result;
         if (playerWon) {
-            plugin.getEconomy().depositPlayer(player, wager * 2);
+            double[] taxed = applyTax(wager * 2);
+            double payout = taxed[0];
+            plugin.getEconomy().depositPlayer(player, payout);
             data.setWins(data.getWins() + 1);
-            data.setTotalWon(data.getTotalWon() + wager * 2);
+            data.setTotalWon(data.getTotalWon() + payout);
             if (wager > data.getBiggestWin()) data.setBiggestWin(wager);
+            result = new ResolveResult(true, payout, taxed[1]);
         } else {
             data.setLosses(data.getLosses() + 1);
             if (wager > data.getBiggestLoss()) data.setBiggestLoss(wager);
+            result = new ResolveResult(true, 0, 0);
         }
         data.addHistoryEntry(new MatchHistoryEntry("Coinflip Bot", wager, playerWon, true, System.currentTimeMillis()), plugin.getConfigManager().getMaxHistoryStored());
         plugin.getPlayerDataManager().save(data);
+        return result;
     }
 
     public void setPendingBotBattle(UUID uuid)    { pendingBotBattles.add(uuid); }

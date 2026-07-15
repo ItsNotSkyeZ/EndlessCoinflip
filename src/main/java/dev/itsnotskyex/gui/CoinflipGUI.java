@@ -52,6 +52,13 @@ public class CoinflipGUI implements Listener {
     private String cfg(String key, String... r) { return plugin.getConfigManager().getMessage(key, r); }
     private static String c(String s)           { return ConfigManager.color(s); }
 
+    private void announceBigWin(String winnerName, String loserName, double payout) {
+        ConfigManager cm = plugin.getConfigManager();
+        if (!cm.isBigWinBroadcastEnabled() || payout < cm.getBigWinBroadcastThreshold()) return;
+        String message = cm.getBigWinBroadcastMessage("winner", winnerName, "loser", loserName, "amount", CoinflipManager.fmt(payout));
+        if (message != null) plugin.getServer().broadcastMessage(message);
+    }
+
     private int matchSlotCount() {
         return plugin.getConfigManager().isBotBattlesEnabled() ? 6 : 7;
     }
@@ -164,7 +171,8 @@ public class CoinflipGUI implements Listener {
                     boolean thisPlayerWins = isHost != joinerWins;
                     boolean resolved = true;
                     if (!isHost) {
-                        resolved = plugin.getCoinflipManager().resolveMatch(viewer, match, joinerWins);
+                        CoinflipManager.ResolveResult result = plugin.getCoinflipManager().resolveMatch(viewer, match, joinerWins);
+                        resolved = result.success;
                         Player host = plugin.getServer().getPlayer(match.hostUuid);
                         if (!resolved) {
                             viewer.sendMessage(cfg("insufficient-funds-join"));
@@ -172,6 +180,9 @@ public class CoinflipGUI implements Listener {
                         } else {
                             if (host != null) host.sendMessage(cfg(joinerWins ? "you-lost" : "you-won", "opponent", viewer.getName(), "wager", CoinflipManager.fmt(match.wager)));
                             viewer.sendMessage(cfg(joinerWins ? "you-won" : "you-lost", "opponent", match.hostName, "wager", CoinflipManager.fmt(match.wager)));
+
+                            String loserName = joinerWins ? match.hostName : viewer.getName();
+                            announceBigWin(winnerName, loserName, result.payout);
                         }
                     }
                     if (resolved) plugin.getSoundManager().play(viewer, thisPlayerWins ? "win" : "lose");
@@ -189,8 +200,9 @@ public class CoinflipGUI implements Listener {
                     String winnerName = wins ? player.getName() : "Coinflip Bot";
                     inv.setItem(4, namedPane(winner.paneMaterial, c(cfg("winner-pane", "color", winner.chatColor, "name", winnerName))));
                     plugin.getCoinflipManager().unregisterBotMatch(player.getUniqueId());
-                    plugin.getCoinflipManager().resolveBotMatch(player, wager, wins);
+                    CoinflipManager.ResolveResult result = plugin.getCoinflipManager().resolveBotMatch(player, wager, wins);
                     player.sendMessage(cfg(wins ? "you-won" : "you-lost", "opponent", "Coinflip Bot", "wager", CoinflipManager.fmt(wager)));
+                    if (wins) announceBigWin(player.getName(), "Coinflip Bot", result.payout);
                     plugin.getSoundManager().play(player, wins ? "win" : "lose");
                     MatchUIData md = matchUIs.get(inv); if (md != null) md.animating = false;
                     plugin.getServer().getScheduler().runTaskLater(plugin, () -> { if (guiTypes.containsKey(inv)) player.closeInventory(); }, 60L);

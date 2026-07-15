@@ -81,8 +81,27 @@ public class ConfigManager {
     public int getMaxActiveMatches() { return plugin.getConfig().getInt("settings.max-active-matches", 6); }
     public int getMaxHistoryStored() { return plugin.getConfig().getInt("history.max-stored", 200); }
 
+    public double getServerTaxPercent() {
+        double percent = plugin.getConfig().getDouble("settings.server-tax-percent", 0);
+        if (percent < 0) return 0;
+        if (percent > 100) return 100;
+        return percent;
+    }
+
     public boolean isBotBattlesEnabled()     { return plugin.getConfig().getBoolean("features.bot-battles", true); }
     public boolean isJoinConfirmationEnabled() { return plugin.getConfig().getBoolean("features.join-confirmation", true); }
+
+    public boolean isBigWinBroadcastEnabled()   { return plugin.getConfig().getBoolean("broadcast.big-win.enabled", false); }
+    public double getBigWinBroadcastThreshold() { return plugin.getConfig().getDouble("broadcast.big-win.threshold", 1_000_000); }
+
+    public String getBigWinBroadcastMessage(String... replacements) {
+        String raw = plugin.getConfig().getString("broadcast.big-win.message");
+        if (raw == null) return null;
+        for (int i = 0; i + 1 < replacements.length; i += 2) {
+            raw = raw.replace("{" + replacements[i] + "}", replacements[i + 1]);
+        }
+        return color(raw);
+    }
 
     public Material getMaterial(String key, Material fallback) {
         String name = plugin.getConfig().getString(key);

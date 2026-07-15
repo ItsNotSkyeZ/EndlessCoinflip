@@ -33,6 +33,7 @@ settings:
   min-wager: 100
   max-wager: 1000000
   max-active-matches: 6
+  server-tax-percent: 10
 
 gui:
   main-title: "&0Coinflip"
@@ -124,6 +125,13 @@ match-expiry:
   minutes: 10
   check-interval-seconds: 30 # requires a restart to take effect
 
+# Server-wide announcement whenever someone wins at least {amount}.
+broadcast:
+  big-win:
+    enabled: false
+    threshold: 1000000
+    message: "&6&l⭐ &e{winner} &6just won &f{amount} &6off &f{loser} &6in a coinflip!"
+
 # Toggle is under features.join-confirmation above.
 join-confirm:
   title: "&0Confirm Join"
@@ -204,3 +212,5 @@ leaderboard:
 #  {date}        — formatted date (history.entry-lore only)
 #  {rank}        — leaderboard position
 #  {value}       — leaderboard entry's sorted stat (leaderboard.chat-entry only)
+#  {winner}      — winner's name (broadcast.big-win.message only)
+#  {loser}       — loser's name (broadcast.big-win.message only)
