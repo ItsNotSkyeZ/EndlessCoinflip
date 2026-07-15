@@ -1,0 +1,103 @@
+# =============================================
+#           EndlessCoinflip by ItsNotSkyeX
+#   General chat messages. Use & colour codes.
+#   Placeholders shown in {}.
+#
+#   GUI-specific text (titles, item names, lore)
+#   lives in config.yml instead — this file is
+#   just chat messages.
+# =============================================
+
+no-permission: "&c&l(!) &cYou don't have permission to do that."
+player-only: "&c&l(!) &cOnly players can use this command."
+invalid-amount: "&c&l(!) &cInvalid amount. Please enter a number."
+wager-must-be-positive: "&c&l(!) &cWager must be a positive number."
+wager-too-low: "&c&l(!) &cThe minimum wager is &7{min}&c."
+wager-too-high: "&c&l(!) &cThe maximum wager is &7{max}&c."
+feature-disabled: "&c&l(!) &cThat feature is currently disabled."
+
+insufficient-funds-create: "&c&l(!) &cYou don't have enough money to create that match."
+insufficient-funds-join: "&c&l(!) &cYou don't have enough money to join that match."
+insufficient-funds-need: "&c&l(!) &cYou need &7{wager} &cto place that wager."
+already-has-match: "&c&l(!) &cYou already have an active match. Cancel it first with &7/cf cancel&c."
+lobby-full: "&c&l(!) &cThe coinflip lobby is full. Try again later."
+match-created: "&a&l(!) &aMatch created for &f{wager}&a! Waiting for an opponent..."
+match-cancelled: "&a&l(!) &aYour match has been cancelled and your wager refunded."
+no-active-match: "&c&l(!) &cYou don't have an active match to cancel."
+match-no-longer-exists: "&c&l(!) &cThat match no longer exists."
+match-expired: "&c&l(!) &cYour match expired with no opponent and your wager of &7{wager} &cwas refunded."
+cooldown-active: "&c&l(!) &cYou must wait &7{time}s &cbefore playing again."
+color-taken: "&c&l(!) &cYour opponent already chose that colour. Pick another."
+
+you-won: "&a&l[!] &aYou won &f{wager} &aagainst &f{opponent}&a!"
+you-lost: "&c&l[!] &cYou lost &f{wager} &cto &f{opponent}&c."
+
+cannot-invite-self: "&c&l(!) &cYou can't invite yourself to a match."
+player-not-found: "&c&l(!) &cPlayer &7{player} &cis not online."
+invite-already-pending: "&c&l(!) &cYou already have an invite pending. Cancel it first with &7/cf cancel&c."
+target-has-pending-invite: "&c&l(!) &cThat player already has a pending invite."
+no-pending-invite: "&c&l(!) &cYou don't have a pending invite."
+
+private-invite-sent: "&a&l(!) &aInvite sent to &f{target} &afor &f{wager}&a! Choose your wool colour while you wait."
+private-invite-received: "&a&l(!) &f{host} &ahas challenged you to a coinflip for &f{wager}&a!"
+private-invite-accept-text: "&a&l[ACCEPT]"
+private-invite-accept-hover: "&aClick to accept the invite"
+private-invite-deny-text: "&c&l[DENY]"
+private-invite-deny-hover: "&cClick to deny the invite"
+private-invite-waiting-color: "&a&l(!) &aYou accepted &f{host}&a's invite. Waiting for them to choose a wool colour..."
+private-invite-accepted-waiting-you: "&a&l(!) &f{target} &aaccepted your invite! Waiting for you to choose a wool colour..."
+private-invite-color-chosen: "&a&l(!) &aYou chose your colour &f{color}&a. Waiting on &f{target}&a..."
+private-invite-cancelled: "&a&l(!) &aYour invite to &f{target} &awas cancelled and your wager refunded."
+private-invite-cancelled-host: "&c&l(!) &c{host} &ccancelled their invite to you."
+private-invite-denied: "&c&l(!) &f{target} &cdenied your invite. Your wager was refunded."
+private-invite-denied-self: "&a&l(!) &aYou denied &f{host}&a's invite."
+private-invite-expired: "&c&l(!) &cYour invite to &f{target} &cexpired and your wager was refunded."
+private-invite-expired-target: "&c&l(!) &f{host}&c's invite to you expired."
+
+bot-battle-prompt: "&a&l(!) &aEnter a wager amount in chat, or type &7cancel&a."
+bot-battle-cancelled: "&a&l(!) &aBot battle cancelled."
+bot-battle-invalid-amount: "&c&l(!) &cInvalid amount entered."
+
+pending-payout: "&a&l[!] &aYou received a pending coinflip payout of &f{amount}&a!"
+
+reload-success: "&a&l(!) &aConfig reloaded successfully."
+reload-failed: "&c&l(!) &cConfig failed to reload — check console for a YAML error. Your previous settings are still active."
+
+help-cmd-main: "&b/cf &f— Open the coinflip menu"
+help-cmd-wager: "&b/cf &f<wager|all|half> &f— Create a match"
+help-cmd-bot: "&b/cf bot &f<wager> &f— Start a bot battle instantly"
+help-cmd-private: "&b/cf &f<player> <wager> &f— Challenge a player directly"
+help-cmd-cancel: "&b/cf cancel &f— Cancel your active match or invite"
+help-cmd-stats: "&b/cf stats &f— View your coinflip stats"
+help-cmd-history: "&b/cf history &f— View your match history"
+help-cmd-top: "&b/cf top &f<page> &f— View the leaderboard"
+
+help:
+  - "&0&m                                        "
+  - "  &b&lEndlessCoinflip &8— &7Commands"
+  - "&0&m                                        "
+  - "  &b/cf &8— &7Open the coinflip lobby"
+  - "  &b/cf <amount> &8— &7Create a match (supports all, half, 10k, 1m, etc.)"
+  - "  &b/cf <player> <amount> &8— &7Challenge a player directly"
+  - "  &b/cf accept &8— &7Accept a pending invite"
+  - "  &b/cf deny &8— &7Deny a pending invite"
+  - "  &b/cf bot <amount> &8— &7Start a bot battle instantly"
+  - "  &b/cf cancel &8— &7Cancel your active match or invite"
+  - "  &b/cf stats &8— &7View your coinflip statistics"
+  - "  &b/cf history &8— &7View your match history"
+  - "  &b/cf top <page> &8— &7View the leaderboard"
+  - "  &b/cf help &8— &7Show this help menu"
+  - "  &b/cf reload &8— &7Reload config (admin)"
+  - "&0&m                                        "
+
+stats:
+  - "&0&m                                        "
+  - "  &b&lYour Coinflip Stats"
+  - "&0&m                                        "
+  - "  &7Wins&8: &f{wins}"
+  - "  &7Losses&8: &f{losses}"
+  - "  &7Total Wagered&8: &f{wagered}"
+  - "  &7Total Won&8: &f{won}"
+  - "  &7Biggest Win&8: &f{win}"
+  - "  &7Biggest Loss&8: &f{loss}"
+  - "&0&m                                        "
