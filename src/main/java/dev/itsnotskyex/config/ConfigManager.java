@@ -18,11 +18,13 @@ public class ConfigManager {
 
     public ConfigManager(EndlessCoinflip plugin) {
         this.plugin = plugin;
+        updateConfigFile();
         loadMessages();
     }
 
     public boolean reload() {
         plugin.saveDefaultConfig();
+        updateConfigFile();
 
         File configFile = new File(plugin.getDataFolder(), "config.yml");
         try {
@@ -46,10 +48,20 @@ public class ConfigManager {
         return true;
     }
 
+    // Adds any keys present in the bundled config.yml but missing from the one on disk
+    // (new settings from an update, or ones a server owner deleted), without touching
+    // existing values, comments, or ordering.
+    private void updateConfigFile() {
+        File configFile = new File(plugin.getDataFolder(), "config.yml");
+        ConfigUpdater.update(configFile, plugin, "config.yml", plugin.getLogger());
+    }
+
     private void loadMessages() {
         File messagesFile = new File(plugin.getDataFolder(), "messages.yml");
         if (!messagesFile.exists()) {
             plugin.saveResource("messages.yml", false);
+        } else {
+            ConfigUpdater.update(messagesFile, plugin, "messages.yml", plugin.getLogger());
         }
         messagesConfig = YamlConfiguration.loadConfiguration(messagesFile);
 

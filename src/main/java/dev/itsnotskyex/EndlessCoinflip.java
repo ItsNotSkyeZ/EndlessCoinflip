@@ -38,8 +38,8 @@ public class EndlessCoinflip extends JavaPlugin {
         }
 
         saveDefaultConfig();
+        configManager   = new ConfigManager(this); // patches config.yml before the first getConfig() call below caches it
         getConfig().options().copyDefaults(false);
-        configManager   = new ConfigManager(this);
         soundManager    = new SoundManager(this);
         playerDataManager = new PlayerDataManager(this);
         coinflipManager = new CoinflipManager(this);

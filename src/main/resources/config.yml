@@ -33,6 +33,7 @@ settings:
   min-wager: 100
   max-wager: 1000000
   max-active-matches: 6
+  # Percentage cut taken from the pot before the winner is paid. 0 disables it.
   server-tax-percent: 10
 
 gui:
