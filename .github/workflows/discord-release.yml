@@ -1,0 +1,55 @@
+name: Discord Release Notification
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Discord notification
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          VERSION="${{ github.event.release.tag_name }}"
+          NAME="${{ github.event.release.name }}"
+          BODY="${{ github.event.release.body }}"
+          URL="${{ github.event.release.html_url }}"
+          DOWNLOAD="https://github.com/${{ github.repository }}/releases/download/${VERSION}/EndlessCoinflip-${VERSION}.jar"
+
+          # Trim changelog to 1024 chars for Discord embed limit
+          BODY_TRIMMED=$(echo "$BODY" | head -c 1024)
+
+          curl -H "Content-Type: application/json" \
+            -X POST \
+            -d "{
+              \"username\": \"EndlessCoinflip\",
+              \"avatar_url\": \"https://i.ibb.co/s9H4zM8t/089de5b2-8ff8-4e4c-9944-67505c5627eb.png\",
+              \"embeds\": [{
+                \"title\": \"🎉 ${NAME}\",
+                \"description\": \"A new version of EndlessCoinflip has been released!\",
+                \"color\": 170,
+                \"fields\": [
+                  {
+                    \"name\": \"📦 Version\",
+                    \"value\": \"${VERSION}\",
+                    \"inline\": true
+                  },
+                  {
+                    \"name\": \"📥 Download\",
+                    \"value\": \"[Click here](${DOWNLOAD})\",
+                    \"inline\": true
+                  },
+                  {
+                    \"name\": \"📋 Changelog\",
+                    \"value\": \"${BODY_TRIMMED}\"
+                  }
+                ],
+                \"footer\": {
+                  \"text\": \"EndlessCoinflip by ItsNotSkyeX\"
+                },
+                \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"
+              }]
+            }" \
+            "$DISCORD_WEBHOOK"
