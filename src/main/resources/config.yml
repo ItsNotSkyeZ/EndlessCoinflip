@@ -7,14 +7,18 @@
 #   Placeholders: {wager}, {opponent}, etc.
 # =============================================
 
+# =============================================
+#                  FEATURES
+# =============================================
 features:
   bot-battles: true
   join-confirmation: true
+  private-matches: true
 
-# Switching type auto-migrates data from whatever backend was previously
-# active into the new one on next startup, then backs up the old data
-# (renamed folder for FILE, renamed tables for SQLITE/MYSQL) instead of
-# deleting it.
+# =============================================
+#                  STORAGE
+# =============================================
+# Switching type auto-migrates your data and backs up the old store.
 storage:
   type: FILE # FILE, SQLITE, or MYSQL
 
@@ -29,13 +33,24 @@ storage:
     password: ""
     use-ssl: false
 
+# =============================================
+#                   WAGERS
+# =============================================
 settings:
   min-wager: 100
   max-wager: 1000000
   max-active-matches: 6
-  # Percentage cut taken from the pot before the winner is paid. 0 disables it.
   server-tax-percent: 10
 
+# Per-permission max-wager overrides. Keys must start with "endlesscoinflip.".
+# Highest matching value wins; no match falls back to settings.max-wager.
+wager-limits:
+  # endlesscoinflip.vip: 5000000
+  # endlesscoinflip.mvp: 10000000
+
+# =============================================
+#                    GUI
+# =============================================
 gui:
   main-title: "&0Coinflip"
   color-picker-title: "&0Choose Your Colour"
@@ -67,6 +82,9 @@ gui:
   winner-pane: "{color}&l{name} wins!"
   player-skull-lore: "&7W/L: &f{ratio}"
 
+# =============================================
+#                  SOUNDS
+# =============================================
 # Sound names must match a Bukkit Sound enum value.
 sounds:
   win:
@@ -91,6 +109,9 @@ sounds:
     pitch: 0.8
     pitch-step: 0.06
 
+# =============================================
+#                  HISTORY
+# =============================================
 # gui-size must be a multiple of 9 (9-54). Bottom row is reserved for navigation.
 history:
   max-stored: 200
@@ -117,6 +138,9 @@ history:
   no-previous-page: "&cYou're already on the first page."
   no-next-page: "&cYou're already on the last page."
 
+# =============================================
+#                 GAMEPLAY
+# =============================================
 cooldowns:
   enabled: true
   seconds: 5
@@ -133,7 +157,7 @@ broadcast:
     threshold: 1000000
     message: "&6&l⭐ &e{winner} &6just won &f{amount} &6off &f{loser} &6in a coinflip!"
 
-# Toggle is under features.join-confirmation above.
+# Toggled via features.join-confirmation above.
 join-confirm:
   title: "&0Confirm Join"
   info-slot: 4
@@ -150,6 +174,9 @@ join-confirm:
   cancel-material: RED_STAINED_GLASS_PANE
   cancel-name: "&c&lCancel"
 
+# =============================================
+#                LEADERBOARD
+# =============================================
 # sort-by: wins, losses, total-wagered, total-won, biggest-win, biggest-loss
 leaderboard:
   enabled: true
@@ -186,7 +213,9 @@ leaderboard:
   no-previous-page: "&cYou're already on the first page."
   no-next-page: "&cYou're already on the last page."
 
-# Placeholder reference
+# =============================================
+#                PLACEHOLDERS
+# =============================================
 #  {wager}       — wager amount
 #  {opponent}    — opponent's name, or "Coinflip Bot"
 #  {min}         — configured minimum wager

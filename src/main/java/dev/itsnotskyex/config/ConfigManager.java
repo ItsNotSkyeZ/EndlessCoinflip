@@ -3,8 +3,10 @@ package dev.itsnotskyex.config;
 import dev.itsnotskyex.EndlessCoinflip;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Player;
 
 import java.io.File;
 import java.io.InputStream;
@@ -91,6 +93,19 @@ public class ConfigManager {
     public int getMaxActiveMatches() { return plugin.getConfig().getInt("settings.max-active-matches", 6); }
     public int getMaxHistoryStored() { return plugin.getConfig().getInt("history.max-stored", 200); }
 
+    public double getMaxWager(Player player) {
+        double max = getMaxWager();
+        ConfigurationSection section = plugin.getConfig().getConfigurationSection("wager-limits");
+        if (section == null) return max;
+        for (String perm : section.getKeys(false)) {
+            if (!perm.toLowerCase().startsWith("endlesscoinflip.")) continue;
+            if (!player.hasPermission(perm)) continue;
+            double limit = section.getDouble(perm, max);
+            if (limit > max) max = limit;
+        }
+        return max;
+    }
+
     public double getServerTaxPercent() {
         double percent = plugin.getConfig().getDouble("settings.server-tax-percent", 0);
         if (percent < 0) return 0;
@@ -100,6 +115,7 @@ public class ConfigManager {
 
     public boolean isBotBattlesEnabled()     { return plugin.getConfig().getBoolean("features.bot-battles", true); }
     public boolean isJoinConfirmationEnabled() { return plugin.getConfig().getBoolean("features.join-confirmation", true); }
+    public boolean isPrivateMatchesEnabled() { return plugin.getConfig().getBoolean("features.private-matches", true); }
 
     public boolean isBigWinBroadcastEnabled()   { return plugin.getConfig().getBoolean("broadcast.big-win.enabled", false); }
     public double getBigWinBroadcastThreshold() { return plugin.getConfig().getDouble("broadcast.big-win.threshold", 1_000_000); }

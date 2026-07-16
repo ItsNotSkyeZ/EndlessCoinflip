@@ -141,7 +141,7 @@ public class CoinflipCommand implements CommandExecutor, TabCompleter {
 
             if (wager <= 0) { msg(player, "wager-must-be-positive"); return true; }
             double min = plugin.getConfigManager().getMinWager();
-            double max = plugin.getConfigManager().getMaxWager();
+            double max = plugin.getConfigManager().getMaxWager(player);
             if (wager < min) { msg(player, "wager-too-low",  "min", CoinflipManager.fmt(min)); return true; }
             if (wager > max) { msg(player, "wager-too-high", "max", CoinflipManager.fmt(max)); return true; }
             if (!plugin.getEconomy().has(player, wager)) { msg(player, "insufficient-funds-need", "wager", CoinflipManager.fmt(wager)); return true; }
@@ -152,13 +152,11 @@ public class CoinflipCommand implements CommandExecutor, TabCompleter {
         }
 
         Player target = Bukkit.getPlayerExact(args[0]);
-        if (target != null) {
+        if (target != null || args.length >= 2) {
+            if (!plugin.getConfigManager().isPrivateMatchesEnabled()) { msg(player, "feature-disabled"); return true; }
+            if (target == null) { msg(player, "player-not-found", "player", args[0]); return true; }
             if (args.length < 2) { msg(player, "invalid-amount"); return true; }
             handlePrivateInvite(player, target, args[1]);
-            return true;
-        }
-        if (args.length >= 2) {
-            msg(player, "player-not-found", "player", args[0]);
             return true;
         }
 
@@ -167,7 +165,7 @@ public class CoinflipCommand implements CommandExecutor, TabCompleter {
 
         if (wager <= 0)                                       { msg(player, "wager-must-be-positive"); return true; }
         double min = plugin.getConfigManager().getMinWager();
-        double max = plugin.getConfigManager().getMaxWager();
+        double max = plugin.getConfigManager().getMaxWager(player);
         if (wager < min) { msg(player, "wager-too-low",  "min", CoinflipManager.fmt(min)); return true; }
         if (wager > max) { msg(player, "wager-too-high", "max", CoinflipManager.fmt(max)); return true; }
         if (plugin.getCoinflipManager().hasActiveMatch(player.getUniqueId())) { msg(player, "already-has-match"); return true; }
@@ -185,7 +183,7 @@ public class CoinflipCommand implements CommandExecutor, TabCompleter {
         if (Double.isNaN(wager)) { msg(host, "invalid-amount"); return; }
         if (wager <= 0) { msg(host, "wager-must-be-positive"); return; }
         double min = plugin.getConfigManager().getMinWager();
-        double max = plugin.getConfigManager().getMaxWager();
+        double max = plugin.getConfigManager().getMaxWager(host);
         if (wager < min) { msg(host, "wager-too-low",  "min", CoinflipManager.fmt(min)); return; }
         if (wager > max) { msg(host, "wager-too-high", "max", CoinflipManager.fmt(max)); return; }
 
@@ -247,17 +245,22 @@ public class CoinflipCommand implements CommandExecutor, TabCompleter {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> wagers = List.of("all", "half", "100", "1000", "10k", "200k", "1m", "10m", "100m");
         boolean botEnabled = plugin.getConfigManager().isBotBattlesEnabled();
+        boolean privateEnabled = plugin.getConfigManager().isPrivateMatchesEnabled();
 
         if (args.length == 1) {
-            List<String> options = new ArrayList<>(List.of("help", "cancel", "stats", "history", "top", "reload", "accept", "deny"));
+            List<String> options = new ArrayList<>(List.of("help", "cancel", "stats", "history", "top", "reload"));
             if (botEnabled) options.add("bot");
+            if (privateEnabled) {
+                options.add("accept");
+                options.add("deny");
+                for (Player online : Bukkit.getOnlinePlayers()) options.add(online.getName());
+            }
             options.addAll(wagers);
-            for (Player online : Bukkit.getOnlinePlayers()) options.add(online.getName());
             return options;
         }
         if (args.length == 2 && botEnabled && args[0].equalsIgnoreCase("bot")) return wagers;
         if (args.length == 2 && args[0].equalsIgnoreCase("top")) return List.of("1", "2", "3");
-        if (args.length == 2 && Bukkit.getPlayerExact(args[0]) != null) return wagers;
+        if (args.length == 2 && privateEnabled && Bukkit.getPlayerExact(args[0]) != null) return wagers;
         return List.of();
     }
 }

@@ -510,7 +510,8 @@ public class CoinflipGUI implements Listener {
         ItemStack item = new ItemStack(Material.BOOK);
         ItemMeta meta = item.getItemMeta();
         meta.setDisplayName(c(cfg("help-name")));
-        List<String> lore = new ArrayList<>(List.of("", cfg("help-cmd-main"), "", cfg("help-cmd-wager"), "", cfg("help-cmd-private")));
+        List<String> lore = new ArrayList<>(List.of("", cfg("help-cmd-main"), "", cfg("help-cmd-wager")));
+        if (plugin.getConfigManager().isPrivateMatchesEnabled()) lore.addAll(List.of("", cfg("help-cmd-private")));
         if (plugin.getConfigManager().isBotBattlesEnabled()) lore.addAll(List.of("", cfg("help-cmd-bot")));
         lore.addAll(List.of("", cfg("help-cmd-cancel"), "", cfg("help-cmd-stats"), "", cfg("help-cmd-history"), "", cfg("help-cmd-top")));
         meta.setLore(lore);

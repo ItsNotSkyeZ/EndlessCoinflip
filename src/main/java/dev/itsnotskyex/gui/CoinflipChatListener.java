@@ -48,7 +48,7 @@ public class CoinflipChatListener implements Listener {
             }
 
             double min = plugin.getConfigManager().getMinWager();
-            double max = plugin.getConfigManager().getMaxWager();
+            double max = plugin.getConfigManager().getMaxWager(player);
             if (wager < min) {
                 player.sendMessage(plugin.getConfigManager().getMessage("wager-too-low", "min", CoinflipManager.fmt(min)));
                 return;
