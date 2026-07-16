@@ -6,7 +6,7 @@
 **PvP Coinflip with Bot Battles & Stats**
 
 [![Spigot](https://img.shields.io/badge/Spigot-1.21+-orange)](https://www.spigotmc.org/resources/endlesscoinflip-pvp-coinflip-with-bot-battles-stats-1-21.137052)
-[![Version](https://img.shields.io/badge/Version-0.0.6-blue)](https://github.com/ItsNotSkyeZ/EndlessCoinflip/releases)
+[![Version](https://img.shields.io/badge/Version-0.0.7-blue)](https://github.com/ItsNotSkyeZ/EndlessCoinflip/releases)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
 </div>
@@ -20,6 +20,7 @@ EndlessCoinflip is a clean, feature-rich coinflip plugin built for Paper or Spig
 
 ## Features
 - **PvP Coinflip & Bot Battles** — Challenge players or the built-in bot at any wager amount
+- **Private Matches** — Challenge a specific player directly with `/cf <player> <wager>`
 - **Leaderboards** — Top players by wins, losses, wagered, biggest win and more via `/cf top`
 - **Match History** — View your recent results in a paginated GUI
 - **Player Stats** — Track wins, losses, total wagered, total won, biggest win and biggest loss
@@ -58,8 +59,11 @@ EndlessCoinflip is a clean, feature-rich coinflip plugin built for Paper or Spig
 |---|---|
 | `/cf` | Open the coinflip lobby |
 | `/cf <amount>` | Create a new match with the specified wager |
+| `/cf <player> <amount>` | Challenge a specific player to a private match |
 | `/cf bot <amount>` | Start a bot battle instantly |
-| `/cf cancel` | Cancel your active match and get your wager refunded |
+| `/cf accept` | Accept a pending private match invite |
+| `/cf deny` | Deny a pending private match invite |
+| `/cf cancel` | Cancel your active match or pending invite |
 | `/cf stats` | View your coinflip statistics |
 | `/cf history` | View your recent coinflip results |
 | `/cf top [page]` | View the leaderboard |
@@ -111,7 +115,6 @@ The built jar will be in `target/`.
 - [ ] Custom Economy — built-in economy option for servers without Vault
 - [ ] Per-permission Wager Limits — different min/max wagers per rank or permission group
 - [ ] Win Streak Tracking — track and display current and best win streaks
-- [ ] Private Matches — invite a specific player instead of posting to the open lobby
 - [ ] Spectating — allow players to watch an ongoing match in real time
 
 ---
