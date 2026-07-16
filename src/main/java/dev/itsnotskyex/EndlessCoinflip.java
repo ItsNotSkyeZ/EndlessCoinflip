@@ -10,6 +10,7 @@ import dev.itsnotskyex.gui.HistoryGUI;
 import dev.itsnotskyex.gui.LeaderboardGUI;
 import dev.itsnotskyex.gui.PlayerConnectionListener;
 import dev.itsnotskyex.manager.CoinflipManager;
+import dev.itsnotskyex.manager.PrivateMatchManager;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -22,6 +23,7 @@ public class EndlessCoinflip extends JavaPlugin {
     private SoundManager soundManager;
     private PlayerDataManager playerDataManager;
     private CoinflipManager coinflipManager;
+    private PrivateMatchManager privateMatchManager;
     private CoinflipGUI coinflipGUI;
     private HistoryGUI historyGUI;
     private LeaderboardGUI leaderboardGUI;
@@ -38,11 +40,12 @@ public class EndlessCoinflip extends JavaPlugin {
         }
 
         saveDefaultConfig();
-        configManager   = new ConfigManager(this); // patches config.yml before the first getConfig() call below caches it
+        configManager   = new ConfigManager(this);
         getConfig().options().copyDefaults(false);
         soundManager    = new SoundManager(this);
         playerDataManager = new PlayerDataManager(this);
         coinflipManager = new CoinflipManager(this);
+        privateMatchManager = new PrivateMatchManager(this);
         coinflipGUI     = new CoinflipGUI(this);
         historyGUI      = new HistoryGUI(this);
         leaderboardGUI  = new LeaderboardGUI(this);
@@ -85,6 +88,7 @@ public class EndlessCoinflip extends JavaPlugin {
     public SoundManager getSoundManager()       { return soundManager; }
     public PlayerDataManager getPlayerDataManager() { return playerDataManager; }
     public CoinflipManager getCoinflipManager() { return coinflipManager; }
+    public PrivateMatchManager getPrivateMatchManager() { return privateMatchManager; }
     public CoinflipGUI getCoinflipGUI()         { return coinflipGUI; }
     public HistoryGUI getHistoryGUI()           { return historyGUI; }
     public LeaderboardGUI getLeaderboardGUI()   { return leaderboardGUI; }

@@ -48,9 +48,7 @@ public class ConfigManager {
         return true;
     }
 
-    // Adds any keys present in the bundled config.yml but missing from the one on disk
-    // (new settings from an update, or ones a server owner deleted), without touching
-    // existing values, comments, or ordering.
+
     private void updateConfigFile() {
         File configFile = new File(plugin.getDataFolder(), "config.yml");
         ConfigUpdater.update(configFile, plugin, "config.yml", plugin.getLogger());

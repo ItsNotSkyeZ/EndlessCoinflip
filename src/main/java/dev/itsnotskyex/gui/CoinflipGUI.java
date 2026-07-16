@@ -4,6 +4,7 @@ import dev.itsnotskyex.EndlessCoinflip;
 import dev.itsnotskyex.config.ConfigManager;
 import dev.itsnotskyex.manager.CoinflipManager;
 import dev.itsnotskyex.manager.CoinflipManager.CoinflipMatch;
+import dev.itsnotskyex.manager.PrivateMatchManager;
 import dev.itsnotskyex.manager.WoolColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -31,6 +32,8 @@ public class CoinflipGUI implements Listener {
     private final Map<UUID, Double>            pendingBot    = new HashMap<>();
     private final Map<Inventory, WoolColor>    excludedColors = new HashMap<>();
     private final Set<UUID>                    transitioning = new HashSet<>();
+    private final Map<Inventory, PrivateMatchManager.PrivateInvite> pendingPrivateHost   = new HashMap<>();
+    private final Map<Inventory, PrivateMatchManager.PrivateInvite> pendingPrivateTarget = new HashMap<>();
 
     private enum GuiType { MAIN, COLOR_PICKER, MATCH, BOT_MATCH, JOIN_CONFIRM }
 
@@ -98,6 +101,43 @@ public class CoinflipGUI implements Listener {
     public void openBotColorPicker(Player player, double wager) {
         pendingBot.put(player.getUniqueId(), wager);
         openColorPicker(player, wager);
+    }
+
+    public void openPrivateColorPicker(Player host, PrivateMatchManager.PrivateInvite invite) {
+        Inventory inv = Bukkit.createInventory(null, 9, c(cfg("color-picker-title")));
+        WoolColor[] colors = WoolColor.values();
+        for (int i = 0; i < colors.length; i++) inv.setItem(i, makeColorItem(colors[i], invite.wager, false));
+        track(inv, GuiType.COLOR_PICKER, host);
+        pendingWagers.put(inv, invite.wager);
+        pendingPrivateHost.put(inv, invite);
+        host.openInventory(inv);
+    }
+
+    public void openPrivateJoinColorPicker(Player target, PrivateMatchManager.PrivateInvite invite) {
+        Inventory inv = Bukkit.createInventory(null, 9, c(cfg("color-picker-title")));
+        WoolColor[] colors = WoolColor.values();
+        for (int i = 0; i < colors.length; i++) inv.setItem(i, makeColorItem(colors[i], invite.wager, colors[i] == invite.hostColor));
+        track(inv, GuiType.COLOR_PICKER, target);
+        pendingWagers.put(inv, invite.wager);
+        excludedColors.put(inv, invite.hostColor);
+        pendingPrivateTarget.put(inv, invite);
+        target.openInventory(inv);
+    }
+
+    public void closePrivateColorPicker(Player host) {
+        Inventory inv = findInventoryFor(host.getUniqueId());
+        if (inv == null || pendingPrivateHost.remove(inv) == null) return;
+        transitioning.add(host.getUniqueId());
+        host.closeInventory();
+        transitioning.remove(host.getUniqueId());
+    }
+
+    public void closePrivateTargetPicker(Player target) {
+        Inventory inv = findInventoryFor(target.getUniqueId());
+        if (inv == null || pendingPrivateTarget.remove(inv) == null) return;
+        transitioning.add(target.getUniqueId());
+        target.closeInventory();
+        transitioning.remove(target.getUniqueId());
     }
 
     public void openJoinConfirm(Player player, CoinflipMatch match) {
@@ -347,6 +387,18 @@ public class CoinflipGUI implements Listener {
         player.closeInventory();
         transitioning.remove(player.getUniqueId());
 
+        PrivateMatchManager.PrivateInvite hostInvite = pendingPrivateHost.remove(inv);
+        if (hostInvite != null) {
+            plugin.getPrivateMatchManager().onHostColorChosen(hostInvite, chosen);
+            return;
+        }
+
+        PrivateMatchManager.PrivateInvite targetInvite = pendingPrivateTarget.remove(inv);
+        if (targetInvite != null) {
+            plugin.getPrivateMatchManager().onTargetColorChosen(targetInvite, player, chosen);
+            return;
+        }
+
         Double botWager = pendingBot.remove(player.getUniqueId());
         if (botWager != null) { openBotMatchUI(player, botWager, chosen); return; }
 
@@ -428,6 +480,8 @@ public class CoinflipGUI implements Listener {
                 && !transitioning.contains(owner.getUniqueId())) {
             pendingJoin.remove(owner.getUniqueId());
             pendingBot.remove(owner.getUniqueId());
+            if (pendingPrivateHost.remove(inv) != null) plugin.getPrivateMatchManager().cancelByHost(owner.getUniqueId());
+            if (pendingPrivateTarget.remove(inv) != null) plugin.getPrivateMatchManager().cancelByTarget(owner.getUniqueId());
         }
 
         guiTypes.remove(inv);
@@ -456,7 +510,7 @@ public class CoinflipGUI implements Listener {
         ItemStack item = new ItemStack(Material.BOOK);
         ItemMeta meta = item.getItemMeta();
         meta.setDisplayName(c(cfg("help-name")));
-        List<String> lore = new ArrayList<>(List.of("", cfg("help-cmd-main"), "", cfg("help-cmd-wager")));
+        List<String> lore = new ArrayList<>(List.of("", cfg("help-cmd-main"), "", cfg("help-cmd-wager"), "", cfg("help-cmd-private")));
         if (plugin.getConfigManager().isBotBattlesEnabled()) lore.addAll(List.of("", cfg("help-cmd-bot")));
         lore.addAll(List.of("", cfg("help-cmd-cancel"), "", cfg("help-cmd-stats"), "", cfg("help-cmd-history"), "", cfg("help-cmd-top")));
         meta.setLore(lore);

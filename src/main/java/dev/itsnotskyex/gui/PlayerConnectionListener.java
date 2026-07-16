@@ -36,6 +36,7 @@ public class PlayerConnectionListener implements Listener {
         Player player = event.getPlayer();
         plugin.getCoinflipGUI().handleDisconnect(player);
         plugin.getCoinflipManager().clearPendingBotBattle(player.getUniqueId());
+        plugin.getPrivateMatchManager().handleDisconnect(player);
 
         if (plugin.getCoinflipManager().hasBotMatch(player.getUniqueId())) {
             double wager = plugin.getCoinflipManager().getBotMatchWager(player.getUniqueId());
