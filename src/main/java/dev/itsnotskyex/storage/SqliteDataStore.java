@@ -40,7 +40,13 @@ public class SqliteDataStore extends SqlDataStore {
                 "total_won REAL NOT NULL DEFAULT 0," +
                 "biggest_win REAL NOT NULL DEFAULT 0," +
                 "biggest_loss REAL NOT NULL DEFAULT 0," +
-                "pending_payout REAL NOT NULL DEFAULT 0)";
+                "pending_payout REAL NOT NULL DEFAULT 0," +
+                "receiving_private_invites INTEGER NOT NULL DEFAULT 1)";
+    }
+
+    @Override
+    protected String addReceivingPrivateInvitesColumnSql() {
+        return "ALTER TABLE cf_players ADD COLUMN receiving_private_invites INTEGER NOT NULL DEFAULT 1";
     }
 
     @Override

@@ -15,6 +15,7 @@ public class PlayerData {
     private double biggestWin;
     private double biggestLoss;
     private double pendingPayout;
+    private boolean receivingPrivateInvites = true;
     private final List<MatchHistoryEntry> history = new ArrayList<>();
 
     public PlayerData(UUID uuid) { this.uuid = uuid; }
@@ -46,4 +47,6 @@ public class PlayerData {
     public void setBiggestLoss(double v)   { this.biggestLoss = v; }
     public double getPendingPayout()       { return pendingPayout; }
     public void setPendingPayout(double v) { this.pendingPayout = v; }
+    public boolean isReceivingPrivateInvites()      { return receivingPrivateInvites; }
+    public void setReceivingPrivateInvites(boolean v) { this.receivingPrivateInvites = v; }
 }

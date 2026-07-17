@@ -113,6 +113,15 @@ public class CoinflipCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
+        if (sub.equals("toggle")) {
+            PlayerData data = plugin.getPlayerDataManager().get(player.getUniqueId());
+            boolean nowReceiving = !data.isReceivingPrivateInvites();
+            data.setReceivingPrivateInvites(nowReceiving);
+            plugin.getPlayerDataManager().save(data);
+            msg(player, nowReceiving ? "private-invites-enabled" : "private-invites-disabled");
+            return true;
+        }
+
         if (sub.equals("stats")) {
             PlayerData data = plugin.getPlayerDataManager().get(player.getUniqueId());
             for (String line : plugin.getConfigManager().getMessagesConfig().getStringList("stats")) {
@@ -178,6 +187,10 @@ public class CoinflipCommand implements CommandExecutor, TabCompleter {
 
     private void handlePrivateInvite(Player host, Player target, String wagerInput) {
         if (target.getUniqueId().equals(host.getUniqueId())) { msg(host, "cannot-invite-self"); return; }
+        if (!plugin.getPlayerDataManager().get(target.getUniqueId()).isReceivingPrivateInvites()) {
+            msg(host, "target-not-accepting-invites", "target", target.getName());
+            return;
+        }
 
         double wager = plugin.getCoinflipManager().parseWager(wagerInput, host);
         if (Double.isNaN(wager)) { msg(host, "invalid-amount"); return; }
@@ -253,6 +266,7 @@ public class CoinflipCommand implements CommandExecutor, TabCompleter {
             if (privateEnabled) {
                 options.add("accept");
                 options.add("deny");
+                options.add("toggle");
                 for (Player online : Bukkit.getOnlinePlayers()) options.add(online.getName());
             }
             options.addAll(wagers);

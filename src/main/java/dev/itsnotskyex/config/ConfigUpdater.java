@@ -94,7 +94,14 @@ public class ConfigUpdater {
 
             int headerStart = i;
             int j = i - 1;
-            while (j >= 0 && isCommentOrBlank(lines.get(j))) { headerStart = j; j--; }
+            while (j >= 0 && isCommentOrBlank(lines.get(j))) {
+                String prev = lines.get(j);
+                // A comment indented deeper than this key belongs to the previous key's own
+                // block (e.g. a commented-out example line under it), not this key's header.
+                if (!prev.trim().isEmpty() && indentOf(prev) > kl.indent) break;
+                headerStart = j;
+                j--;
+            }
             kl.headerStart = headerStart;
 
             result.add(kl);
@@ -178,7 +185,8 @@ public class ConfigUpdater {
     private static void mergeMissing(List<Node> defaultNodes, String parentPath, Map<String, Node> existingByPath,
                                       List<String> defaultLines, int existingFileEnd,
                                       Map<Integer, List<String>> insertionsByIndex, int[] added) {
-        for (Node dn : defaultNodes) {
+        for (int i = 0; i < defaultNodes.size(); i++) {
+            Node dn = defaultNodes.get(i);
             String path = parentPath.isEmpty() ? dn.key : parentPath + "." + dn.key;
             Node existingNode = existingByPath.get(path);
             if (existingNode == null) {
@@ -188,7 +196,8 @@ public class ConfigUpdater {
                 if (block.isEmpty()) continue;
 
                 boolean topLevel = parentPath.isEmpty();
-                int insertAt = topLevel ? existingFileEnd : existingByPath.get(parentPath).end;
+                int fallback = topLevel ? existingFileEnd : existingByPath.get(parentPath).end;
+                int insertAt = findInsertionPoint(defaultNodes, i, parentPath, existingByPath, fallback);
 
                 List<String> toInsert = new ArrayList<>();
                 if (topLevel) toInsert.add("");
@@ -200,5 +209,18 @@ public class ConfigUpdater {
                 mergeMissing(dn.children, path, existingByPath, defaultLines, existingFileEnd, insertionsByIndex, added);
             }
         }
+    }
+
+    // Missing keys should land next to where they sit in the default template, not always
+    // at the end of the file/section — find the next sibling (after this one) that's already
+    // on disk and insert right before it, so ordering follows the bundled defaults.
+    private static int findInsertionPoint(List<Node> siblings, int fromIndex, String parentPath,
+                                           Map<String, Node> existingByPath, int fallback) {
+        for (int j = fromIndex + 1; j < siblings.size(); j++) {
+            String siblingPath = parentPath.isEmpty() ? siblings.get(j).key : parentPath + "." + siblings.get(j).key;
+            Node existingSibling = existingByPath.get(siblingPath);
+            if (existingSibling != null) return existingSibling.headerStart;
+        }
+        return fallback;
     }
 }
