@@ -13,6 +13,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 public class FileDataStore implements PlayerDataStore {
 
@@ -34,7 +35,11 @@ public class FileDataStore implements PlayerDataStore {
     }
 
     @Override
-    public PlayerData load(UUID uuid) {
+    public CompletableFuture<PlayerData> load(UUID uuid) {
+        return CompletableFuture.completedFuture(loadBlocking(uuid));
+    }
+
+    private PlayerData loadBlocking(UUID uuid) {
         File file = new File(dataFolder, uuid + ".yml");
         PlayerData data = new PlayerData(uuid);
         if (!file.exists()) return data;
@@ -69,7 +74,12 @@ public class FileDataStore implements PlayerDataStore {
     }
 
     @Override
-    public void save(PlayerData data) {
+    public CompletableFuture<Void> save(PlayerData data) {
+        saveBlocking(data);
+        return CompletableFuture.completedFuture(null);
+    }
+
+    private void saveBlocking(PlayerData data) {
         File file = new File(dataFolder, data.getUuid() + ".yml");
         YamlConfiguration yml = new YamlConfiguration();
         yml.set("wins", data.getWins());
@@ -102,26 +112,26 @@ public class FileDataStore implements PlayerDataStore {
     }
 
     @Override
-    public List<LeaderboardEntry> getLeaderboard(String sortBy, int limit, int offset) {
+    public CompletableFuture<List<LeaderboardEntry>> getLeaderboard(String sortBy, int limit, int offset) {
         List<LeaderboardEntry> all = readAllEntries();
         all.sort(Comparator.comparingDouble((LeaderboardEntry e) -> e.valueFor(sortBy)).reversed());
         int from = Math.min(offset, all.size());
         int to = Math.min(offset + limit, all.size());
-        return new ArrayList<>(all.subList(from, to));
+        return CompletableFuture.completedFuture(new ArrayList<>(all.subList(from, to)));
     }
 
     @Override
-    public int getLeaderboardSize() {
-        return readAllEntries().size();
+    public CompletableFuture<Integer> getLeaderboardSize() {
+        return CompletableFuture.completedFuture(readAllEntries().size());
     }
 
     @Override
-    public LeaderboardPage getLeaderboardPage(String sortBy, int limit, int offset) {
+    public CompletableFuture<LeaderboardPage> getLeaderboardPage(String sortBy, int limit, int offset) {
         List<LeaderboardEntry> all = readAllEntries();
         all.sort(Comparator.comparingDouble((LeaderboardEntry e) -> e.valueFor(sortBy)).reversed());
         int from = Math.min(offset, all.size());
         int to = Math.min(offset + limit, all.size());
-        return new LeaderboardPage(new ArrayList<>(all.subList(from, to)), all.size());
+        return CompletableFuture.completedFuture(new LeaderboardPage(new ArrayList<>(all.subList(from, to)), all.size()));
     }
 
     private List<LeaderboardEntry> readAllEntries() {

@@ -12,6 +12,8 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 
 public abstract class SqlDataStore implements PlayerDataStore {
 
@@ -26,18 +28,10 @@ public abstract class SqlDataStore implements PlayerDataStore {
     protected abstract String addReceivingPrivateInvitesColumnSql();
     protected abstract String addPendingRefundColumnSql();
 
-    /**
-     * Acquires a connection to run a query against. MySQL hands out an independent
-     * connection from its pool per call; SQLite hands back its single persistent
-     * connection, which callers must only ever touch from the store's own dedicated
-     * I/O thread.
-     */
+    protected abstract Executor ioExecutor();
+
     protected abstract Connection acquireConnection() throws SQLException;
 
-    /**
-     * Releases a connection obtained via {@link #acquireConnection()}. MySQL returns
-     * it to the pool; SQLite is a no-op since the connection is kept open for reuse.
-     */
     protected abstract void releaseConnection(Connection connection) throws SQLException;
 
     private Connection connection() {
@@ -97,7 +91,11 @@ public abstract class SqlDataStore implements PlayerDataStore {
     }
 
     @Override
-    public PlayerData load(UUID uuid) {
+    public CompletableFuture<PlayerData> load(UUID uuid) {
+        return CompletableFuture.supplyAsync(() -> loadBlocking(uuid), ioExecutor());
+    }
+
+    private PlayerData loadBlocking(UUID uuid) {
         PlayerData data = new PlayerData(uuid);
         Connection conn = connection();
         if (conn == null) return data;
@@ -150,7 +148,11 @@ public abstract class SqlDataStore implements PlayerDataStore {
     }
 
     @Override
-    public void save(PlayerData data) {
+    public CompletableFuture<Void> save(PlayerData data) {
+        return CompletableFuture.runAsync(() -> saveBlocking(data), ioExecutor());
+    }
+
+    private void saveBlocking(PlayerData data) {
         Connection conn = connection();
         if (conn == null) return;
 
@@ -197,26 +199,29 @@ public abstract class SqlDataStore implements PlayerDataStore {
                 }
             }
 
-            try (PreparedStatement ps = conn.prepareStatement("DELETE FROM cf_history WHERE uuid = ?")) {
-                ps.setString(1, data.getUuid().toString());
-                ps.executeUpdate();
-            }
-
-            try (PreparedStatement ps = conn.prepareStatement(
-                    "INSERT INTO cf_history (uuid, opponent, wager, won, vs_bot, ts) VALUES (?, ?, ?, ?, ?, ?)")) {
-                for (MatchHistoryEntry entry : data.getHistory()) {
+            if (data.isHistoryDirty()) {
+                try (PreparedStatement ps = conn.prepareStatement("DELETE FROM cf_history WHERE uuid = ?")) {
                     ps.setString(1, data.getUuid().toString());
-                    ps.setString(2, entry.opponentName);
-                    ps.setDouble(3, entry.wager);
-                    ps.setBoolean(4, entry.won);
-                    ps.setBoolean(5, entry.vsBot);
-                    ps.setLong(6, entry.timestamp);
-                    ps.addBatch();
+                    ps.executeUpdate();
                 }
-                ps.executeBatch();
+
+                try (PreparedStatement ps = conn.prepareStatement(
+                        "INSERT INTO cf_history (uuid, opponent, wager, won, vs_bot, ts) VALUES (?, ?, ?, ?, ?, ?)")) {
+                    for (MatchHistoryEntry entry : data.getHistory()) {
+                        ps.setString(1, data.getUuid().toString());
+                        ps.setString(2, entry.opponentName);
+                        ps.setDouble(3, entry.wager);
+                        ps.setBoolean(4, entry.won);
+                        ps.setBoolean(5, entry.vsBot);
+                        ps.setLong(6, entry.timestamp);
+                        ps.addBatch();
+                    }
+                    ps.executeBatch();
+                }
             }
 
             conn.commit();
+            data.markHistoryClean();
         } catch (SQLException e) {
             plugin.getLogger().warning("Failed to save player data for " + data.getUuid() + ": " + e.getMessage());
             try {
@@ -233,7 +238,11 @@ public abstract class SqlDataStore implements PlayerDataStore {
     }
 
     @Override
-    public List<LeaderboardEntry> getLeaderboard(String sortBy, int limit, int offset) {
+    public CompletableFuture<List<LeaderboardEntry>> getLeaderboard(String sortBy, int limit, int offset) {
+        return CompletableFuture.supplyAsync(() -> getLeaderboardBlocking(sortBy, limit, offset), ioExecutor());
+    }
+
+    private List<LeaderboardEntry> getLeaderboardBlocking(String sortBy, int limit, int offset) {
         List<LeaderboardEntry> entries = new ArrayList<>();
         Connection conn = connection();
         if (conn == null) return entries;
@@ -275,7 +284,11 @@ public abstract class SqlDataStore implements PlayerDataStore {
     }
 
     @Override
-    public int getLeaderboardSize() {
+    public CompletableFuture<Integer> getLeaderboardSize() {
+        return CompletableFuture.supplyAsync(this::getLeaderboardSizeBlocking, ioExecutor());
+    }
+
+    private int getLeaderboardSizeBlocking() {
         Connection conn = connection();
         if (conn == null) return 0;
         try (Statement st = conn.createStatement(); ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM cf_players")) {

@@ -7,13 +7,10 @@ import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
-/**
- * Backed by a single persistent SQLite connection. This connection must only ever be
- * touched by one thread at a time — callers are responsible for routing all access
- * through a single dedicated I/O thread (see PlayerDataManager) rather than the server's
- * main thread or any pool of threads.
- */
 public class SqliteDataStore extends SqlDataStore {
 
     static {
@@ -24,11 +21,21 @@ public class SqliteDataStore extends SqlDataStore {
     }
 
     private final File dbFile;
+    private final ExecutorService ioExecutor = Executors.newSingleThreadExecutor(r -> {
+        Thread thread = new Thread(r, "EndlessCoinflip-SQLite-IO");
+        thread.setDaemon(true);
+        return thread;
+    });
     private Connection connection;
 
     public SqliteDataStore(EndlessCoinflip plugin) {
         super(plugin);
         this.dbFile = new File(plugin.getDataFolder(), plugin.getConfig().getString("storage.sqlite.file", "playerdata.db"));
+    }
+
+    @Override
+    protected Executor ioExecutor() {
+        return ioExecutor;
     }
 
     @Override
@@ -42,11 +49,11 @@ public class SqliteDataStore extends SqlDataStore {
 
     @Override
     protected void releaseConnection(Connection connection) {
-        // Kept open for reuse — this store's single connection is never returned to a pool.
     }
 
     @Override
     public void close() {
+        ioExecutor.shutdown();
         try {
             if (connection != null && !connection.isClosed()) connection.close();
         } catch (SQLException e) {

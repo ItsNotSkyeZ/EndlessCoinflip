@@ -9,6 +9,9 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class MysqlDataStore extends SqlDataStore {
 
@@ -20,6 +23,11 @@ public class MysqlDataStore extends SqlDataStore {
     }
 
     private final HikariDataSource dataSource;
+    private final ExecutorService ioExecutor = Executors.newCachedThreadPool(r -> {
+        Thread thread = new Thread(r, "EndlessCoinflip-MySQL-IO");
+        thread.setDaemon(true);
+        return thread;
+    });
 
     public MysqlDataStore(EndlessCoinflip plugin) {
         super(plugin);
@@ -51,6 +59,11 @@ public class MysqlDataStore extends SqlDataStore {
     }
 
     @Override
+    protected Executor ioExecutor() {
+        return ioExecutor;
+    }
+
+    @Override
     protected Connection acquireConnection() throws SQLException {
         return dataSource.getConnection();
     }
@@ -62,6 +75,7 @@ public class MysqlDataStore extends SqlDataStore {
 
     @Override
     public void close() {
+        ioExecutor.shutdown();
         dataSource.close();
     }
 

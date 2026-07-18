@@ -18,6 +18,7 @@ public class PlayerData {
     private double pendingRefund;
     private boolean receivingPrivateInvites = true;
     private final List<MatchHistoryEntry> history = new CopyOnWriteArrayList<>();
+    private volatile boolean historyDirty = true;
 
     public PlayerData(UUID uuid) { this.uuid = uuid; }
 
@@ -26,12 +27,17 @@ public class PlayerData {
     public void addHistoryEntry(MatchHistoryEntry entry, int maxStored) {
         history.add(0, entry);
         while (history.size() > maxStored) history.remove(history.size() - 1);
+        historyDirty = true;
     }
 
     public void loadHistory(List<MatchHistoryEntry> entries) {
         history.clear();
         history.addAll(entries);
+        historyDirty = false;
     }
+
+    public boolean isHistoryDirty()  { return historyDirty; }
+    public void markHistoryClean()   { historyDirty = false; }
 
     public UUID getUuid()                  { return uuid; }
     public int getWins()                   { return wins; }
