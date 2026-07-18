@@ -4,6 +4,7 @@ import dev.itsnotskyex.EndlessCoinflip;
 import dev.itsnotskyex.data.PlayerData;
 import dev.itsnotskyex.manager.CoinflipManager;
 import dev.itsnotskyex.storage.LeaderboardEntry;
+import dev.itsnotskyex.storage.LeaderboardPage;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
@@ -203,6 +204,7 @@ public class CoinflipCommand implements CommandExecutor, TabCompleter {
         if (plugin.getCoinflipManager().hasActiveMatch(host.getUniqueId()))                     { msg(host, "already-has-match"); return; }
         if (plugin.getPrivateMatchManager().hasPendingAsHost(host.getUniqueId()))                { msg(host, "invite-already-pending"); return; }
         if (plugin.getPrivateMatchManager().hasPendingAsTarget(target.getUniqueId()))            { msg(host, "target-has-pending-invite"); return; }
+        if (plugin.getCoinflipManager().isFull())                                                { msg(host, "lobby-full"); return; }
         if (!checkCooldown(host)) return;
         if (!plugin.getEconomy().has(host, wager)) { msg(host, "insufficient-funds-need", "wager", CoinflipManager.fmt(wager)); return; }
 
@@ -219,11 +221,15 @@ public class CoinflipCommand implements CommandExecutor, TabCompleter {
     private void sendLeaderboard(CommandSender sender, int pageArg) {
         int entriesPerPage = plugin.getConfig().getInt("leaderboard.entries-per-page", 10);
         String sortBy = plugin.getConfig().getString("leaderboard.sort-by", "total-won");
-        int total = plugin.getPlayerDataManager().getLeaderboardSize();
-        int totalPages = Math.max(1, (int) Math.ceil(total / (double) entriesPerPage));
-        int page = Math.max(1, Math.min(pageArg, totalPages)) - 1;
+        int requestedPage = Math.max(1, pageArg) - 1;
 
-        List<LeaderboardEntry> entries = plugin.getPlayerDataManager().getLeaderboard(sortBy, entriesPerPage, page * entriesPerPage);
+        LeaderboardPage requested = plugin.getPlayerDataManager().getLeaderboardPage(sortBy, entriesPerPage, requestedPage * entriesPerPage);
+        int totalPages = Math.max(1, (int) Math.ceil(requested.total / (double) entriesPerPage));
+        int page = Math.min(requestedPage, totalPages - 1);
+
+        List<LeaderboardEntry> entries = page == requestedPage
+                ? requested.entries
+                : plugin.getPlayerDataManager().getLeaderboardPage(sortBy, entriesPerPage, page * entriesPerPage).entries;
 
         for (String line : plugin.getConfig().getStringList("leaderboard.chat-header")) {
             sender.sendMessage(plugin.getConfigManager().color(line

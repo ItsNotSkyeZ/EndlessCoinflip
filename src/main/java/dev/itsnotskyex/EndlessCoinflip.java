@@ -68,6 +68,12 @@ public class EndlessCoinflip extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (coinflipManager != null) {
+            coinflipManager.refundAllActive();
+        }
+        if (privateMatchManager != null) {
+            privateMatchManager.refundAllPending();
+        }
         if (playerDataManager != null) {
             playerDataManager.saveAll();
             playerDataManager.close();

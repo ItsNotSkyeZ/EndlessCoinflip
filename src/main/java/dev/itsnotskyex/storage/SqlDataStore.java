@@ -53,6 +53,12 @@ public abstract class SqlDataStore implements PlayerDataStore {
             st.executeUpdate("CREATE INDEX cf_history_uuid_idx ON cf_history(uuid)");
         } catch (SQLException ignored) {
         }
+        for (String col : new String[]{"wins", "losses", "total_wagered", "total_won", "biggest_win", "biggest_loss"}) {
+            try (Statement st = conn.createStatement()) {
+                st.executeUpdate("CREATE INDEX cf_players_" + col + "_idx ON cf_players(" + col + ")");
+            } catch (SQLException ignored) {
+            }
+        }
         try (Statement st = conn.createStatement()) {
             st.executeUpdate(addReceivingPrivateInvitesColumnSql());
         } catch (SQLException ignored) {

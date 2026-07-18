@@ -12,6 +12,10 @@ public interface PlayerDataStore {
     void save(PlayerData data);
     List<LeaderboardEntry> getLeaderboard(String sortBy, int limit, int offset);
     int getLeaderboardSize();
+
+    default LeaderboardPage getLeaderboardPage(String sortBy, int limit, int offset) {
+        return new LeaderboardPage(getLeaderboard(sortBy, limit, offset), getLeaderboardSize());
+    }
     List<UUID> getAllUuids();
     String backup();
 }

@@ -37,7 +37,12 @@ public class CoinflipManager {
     }
 
     public List<CoinflipMatch> getActiveMatches()     { return Collections.unmodifiableList(activeMatches); }
-    public boolean isFull()                           { return activeMatches.size() >= plugin.getConfigManager().getMaxActiveMatches(); }
+
+    public boolean isFull() {
+        int count = activeMatches.size() + plugin.getPrivateMatchManager().pendingCount();
+        return count >= plugin.getConfigManager().getMaxActiveMatches();
+    }
+
     public boolean hasActiveMatch(UUID uuid)          { return activeMatches.stream().anyMatch(m -> m.hostUuid.equals(uuid)); }
 
     public CoinflipMatch getMatchByHost(UUID uuid) {
@@ -76,6 +81,17 @@ public class CoinflipManager {
         activeMatches.remove(match);
         plugin.getEconomy().depositPlayer(host, match.wager);
         return true;
+    }
+
+    public void refundAllActive() {
+        for (CoinflipMatch match : activeMatches) {
+            plugin.getEconomy().depositPlayer(plugin.getServer().getOfflinePlayer(match.hostUuid), match.wager);
+        }
+        activeMatches.clear();
+        for (Map.Entry<UUID, Double> entry : activeBotMatches.entrySet()) {
+            plugin.getEconomy().depositPlayer(plugin.getServer().getOfflinePlayer(entry.getKey()), entry.getValue());
+        }
+        activeBotMatches.clear();
     }
 
     public CoinflipMatch removeMatch(UUID hostUuid) {
@@ -126,7 +142,7 @@ public class CoinflipManager {
             plugin.getEconomy().depositPlayer(joiner, payout);
             joinerData.setWins(joinerData.getWins() + 1);
             joinerData.setTotalWon(joinerData.getTotalWon() + payout);
-            if (match.wager > joinerData.getBiggestWin()) joinerData.setBiggestWin(match.wager);
+            if (payout > joinerData.getBiggestWin()) joinerData.setBiggestWin(payout);
             joinerData.addHistoryEntry(new MatchHistoryEntry(match.hostName, match.wager, true, false, now), maxHistory);
             plugin.getPlayerDataManager().save(joinerData);
 
@@ -146,7 +162,7 @@ public class CoinflipManager {
             hd.setWins(hd.getWins() + 1);
             hd.setTotalWagered(hd.getTotalWagered() + match.wager);
             hd.setTotalWon(hd.getTotalWon() + payout);
-            if (match.wager > hd.getBiggestWin()) hd.setBiggestWin(match.wager);
+            if (payout > hd.getBiggestWin()) hd.setBiggestWin(payout);
             if (onlineHost != null) {
                 plugin.getEconomy().depositPlayer(onlineHost, payout);
             } else {
@@ -168,7 +184,7 @@ public class CoinflipManager {
             plugin.getEconomy().depositPlayer(player, payout);
             data.setWins(data.getWins() + 1);
             data.setTotalWon(data.getTotalWon() + payout);
-            if (wager > data.getBiggestWin()) data.setBiggestWin(wager);
+            if (payout > data.getBiggestWin()) data.setBiggestWin(payout);
             result = new ResolveResult(true, payout, taxed[1]);
         } else {
             data.setLosses(data.getLosses() + 1);

@@ -113,6 +113,15 @@ public class FileDataStore implements PlayerDataStore {
         return readAllEntries().size();
     }
 
+    @Override
+    public LeaderboardPage getLeaderboardPage(String sortBy, int limit, int offset) {
+        List<LeaderboardEntry> all = readAllEntries();
+        all.sort(Comparator.comparingDouble((LeaderboardEntry e) -> e.valueFor(sortBy)).reversed());
+        int from = Math.min(offset, all.size());
+        int to = Math.min(offset + limit, all.size());
+        return new LeaderboardPage(new ArrayList<>(all.subList(from, to)), all.size());
+    }
+
     private List<LeaderboardEntry> readAllEntries() {
         List<LeaderboardEntry> entries = new ArrayList<>();
         File[] files = dataFolder.listFiles((dir, name) -> name.endsWith(".yml"));

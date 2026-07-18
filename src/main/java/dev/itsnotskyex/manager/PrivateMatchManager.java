@@ -8,6 +8,7 @@ import net.md_5.bungee.api.chat.hover.content.Text;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -48,6 +49,16 @@ public class PrivateMatchManager {
 
     public boolean hasPendingAsHost(UUID uuid)   { return byHost.containsKey(uuid); }
     public boolean hasPendingAsTarget(UUID uuid) { return byTarget.containsKey(uuid); }
+    public int pendingCount()                    { return byHost.size(); }
+
+    public void refundAllPending() {
+        for (PrivateInvite invite : new ArrayList<>(byHost.values())) {
+            if (invite.expiryTask != null) invite.expiryTask.cancel();
+            plugin.getEconomy().depositPlayer(plugin.getServer().getOfflinePlayer(invite.hostUuid), invite.wager);
+        }
+        byHost.clear();
+        byTarget.clear();
+    }
 
     public void createInvite(Player host, Player target, double wager) {
         plugin.getEconomy().withdrawPlayer(host, wager);

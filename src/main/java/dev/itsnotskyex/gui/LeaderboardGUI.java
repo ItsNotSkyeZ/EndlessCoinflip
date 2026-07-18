@@ -4,6 +4,7 @@ import dev.itsnotskyex.EndlessCoinflip;
 import dev.itsnotskyex.config.ConfigManager;
 import dev.itsnotskyex.manager.CoinflipManager;
 import dev.itsnotskyex.storage.LeaderboardEntry;
+import dev.itsnotskyex.storage.LeaderboardPage;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
@@ -36,11 +37,15 @@ public class LeaderboardGUI implements Listener {
     public void open(Player player, int page) {
         int size = clampSize(plugin.getConfig().getInt("leaderboard.gui-size", 54));
         int entriesPerPage = Math.max(size - 9, 9);
-        int total = plugin.getPlayerDataManager().getLeaderboardSize();
-        int totalPages = Math.max(1, (int) Math.ceil(total / (double) entriesPerPage));
-        page = Math.max(0, Math.min(page, totalPages - 1));
+        int requestedPage = Math.max(0, page);
 
-        List<LeaderboardEntry> entries = plugin.getPlayerDataManager().getLeaderboard(sortBy(), entriesPerPage, page * entriesPerPage);
+        LeaderboardPage requested = plugin.getPlayerDataManager().getLeaderboardPage(sortBy(), entriesPerPage, requestedPage * entriesPerPage);
+        int totalPages = Math.max(1, (int) Math.ceil(requested.total / (double) entriesPerPage));
+        page = Math.min(requestedPage, totalPages - 1);
+
+        List<LeaderboardEntry> entries = page == requestedPage
+                ? requested.entries
+                : plugin.getPlayerDataManager().getLeaderboardPage(sortBy(), entriesPerPage, page * entriesPerPage).entries;
 
         String title = c(plugin.getConfig().getString("leaderboard.gui-title", "&0Leaderboard &8({page}/{pages})")
                 .replace("{page}", String.valueOf(page + 1))

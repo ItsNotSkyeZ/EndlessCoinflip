@@ -3,6 +3,7 @@ package dev.itsnotskyex.data;
 import dev.itsnotskyex.EndlessCoinflip;
 import dev.itsnotskyex.storage.FileDataStore;
 import dev.itsnotskyex.storage.LeaderboardEntry;
+import dev.itsnotskyex.storage.LeaderboardPage;
 import dev.itsnotskyex.storage.MysqlDataStore;
 import dev.itsnotskyex.storage.PlayerDataStore;
 import dev.itsnotskyex.storage.SqliteDataStore;
@@ -15,12 +16,20 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public class PlayerDataManager {
 
     private final EndlessCoinflip plugin;
     private final Map<UUID, PlayerData> cache = new HashMap<>();
     private final PlayerDataStore store;
+    private final ExecutorService saveExecutor = Executors.newSingleThreadExecutor(r -> {
+        Thread thread = new Thread(r, "EndlessCoinflip-Save");
+        thread.setDaemon(true);
+        return thread;
+    });
 
     public PlayerDataManager(EndlessCoinflip plugin) {
         this.plugin = plugin;
@@ -131,7 +140,10 @@ public class PlayerDataManager {
     }
 
     public void save(PlayerData data) {
-        store.save(data);
+        saveExecutor.execute(() -> store.save(data));
+        if (plugin.getServer().getPlayer(data.getUuid()) == null) {
+            cache.remove(data.getUuid());
+        }
     }
 
     public void saveAll() {
@@ -146,7 +158,17 @@ public class PlayerDataManager {
         return store.getLeaderboardSize();
     }
 
+    public LeaderboardPage getLeaderboardPage(String sortBy, int limit, int offset) {
+        return store.getLeaderboardPage(sortBy, limit, offset);
+    }
+
     public void close() {
+        saveExecutor.shutdown();
+        try {
+            saveExecutor.awaitTermination(5, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
         store.close();
     }
 }

@@ -42,11 +42,13 @@ public class CoinflipGUI implements Listener {
         final WoolColor joinerColor;
         final boolean isHost;
         final boolean joinerWins;
+        final UUID joinerUuid;
         boolean animating = true;
 
-        MatchUIData(CoinflipMatch match, WoolColor joinerColor, boolean isHost, boolean joinerWins) {
+        MatchUIData(CoinflipMatch match, WoolColor joinerColor, boolean isHost, boolean joinerWins, UUID joinerUuid) {
             this.match = match; this.joinerColor = joinerColor;
             this.isHost = isHost; this.joinerWins = joinerWins;
+            this.joinerUuid = joinerUuid;
         }
     }
 
@@ -167,7 +169,7 @@ public class CoinflipGUI implements Listener {
         inv.setItem(8, makeSkull(joiner.getName(), joiner.getUniqueId(), joinerColor.chatColor, ratio(joiner.getUniqueId())));
         inv.setItem(4, makeCountdown(5));
 
-        MatchUIData data = new MatchUIData(match, joinerColor, isHost, joinerWins);
+        MatchUIData data = new MatchUIData(match, joinerColor, isHost, joinerWins, joiner.getUniqueId());
         track(inv, GuiType.MATCH, viewer);
         matchUIs.put(inv, data);
         viewer.openInventory(inv);
@@ -195,7 +197,7 @@ public class CoinflipGUI implements Listener {
         inv.setItem(4, makeCountdown(5));
 
         track(inv, GuiType.BOT_MATCH, player);
-        matchUIs.put(inv, new MatchUIData(fake, playerColor, false, false));
+        matchUIs.put(inv, new MatchUIData(fake, playerColor, false, false, player.getUniqueId()));
         player.openInventory(inv);
         startBotAnim(player, inv, wager, playerColor, botColor);
     }
@@ -461,6 +463,9 @@ public class CoinflipGUI implements Listener {
                     }
                 }
             }
+        } else if (type == GuiType.MATCH && md != null && md.animating && md.isHost) {
+            Player joiner = plugin.getServer().getPlayer(md.joinerUuid);
+            if (joiner != null) joiner.sendMessage(cfg("match-no-longer-exists"));
         }
 
         cleanup(inv);
