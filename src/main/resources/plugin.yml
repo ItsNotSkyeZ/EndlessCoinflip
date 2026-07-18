@@ -1,5 +1,5 @@
 name: EndlessCoinflip
-version: 0.0.8
+version: 0.0.8c
 main: dev.itsnotskyex.EndlessCoinflip
 api-version: '1.21'
 author: ItsNotSkye
@@ -19,3 +19,6 @@ permissions:
   endlesscoinflip.admin:
     description: Allows use of admin commands (reload)
     default: op
+  endlesscoinflip.notax:
+    description: Exempts you from the server tax when you win a coinflip
+    default: false

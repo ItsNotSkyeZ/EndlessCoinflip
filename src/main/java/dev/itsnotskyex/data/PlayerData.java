@@ -38,6 +38,7 @@ public class PlayerData {
 
     public boolean isHistoryDirty()  { return historyDirty; }
     public void markHistoryClean()   { historyDirty = false; }
+    public void markHistoryDirty()   { historyDirty = true; }
 
     public UUID getUuid()                  { return uuid; }
     public int getWins()                   { return wins; }

@@ -102,6 +102,7 @@ public class PlayerDataManager {
         for (UUID uuid : uuids) {
             try {
                 PlayerData data = oldStore.load(uuid).get(10, TimeUnit.SECONDS);
+                data.markHistoryDirty();
                 store.save(data).get(10, TimeUnit.SECONDS);
                 migrated++;
             } catch (Exception e) {

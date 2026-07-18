@@ -122,7 +122,10 @@ public class CoinflipManager {
         }
     }
 
-    private double[] applyTax(double total) {
+    private double[] applyTax(double total, Player winner) {
+        if (winner != null && winner.hasPermission("endlesscoinflip.notax")) {
+            return new double[]{total, 0};
+        }
         double taxPercent = plugin.getConfigManager().getServerTaxPercent();
         double taxAmount = total * (taxPercent / 100.0);
         return new double[]{total - taxAmount, taxAmount};
@@ -135,15 +138,14 @@ public class CoinflipManager {
         }
         plugin.getEconomy().withdrawPlayer(joiner, match.wager);
 
-        double[] taxed = applyTax(match.wager * 2);
+        Player onlineHost = plugin.getServer().getPlayer(match.hostUuid);
+        double[] taxed = applyTax(match.wager * 2, joinerWon ? joiner : onlineHost);
         double payout = taxed[0];
         double taxAmount = taxed[1];
         int maxHistory = plugin.getConfigManager().getMaxHistoryStored();
         long now = System.currentTimeMillis();
         PlayerData joinerData = plugin.getPlayerDataManager().get(joiner.getUniqueId());
         joinerData.setTotalWagered(joinerData.getTotalWagered() + match.wager);
-
-        Player onlineHost = plugin.getServer().getPlayer(match.hostUuid);
 
         if (joinerWon) {
             plugin.getEconomy().depositPlayer(joiner, payout);
@@ -186,7 +188,7 @@ public class CoinflipManager {
         data.setTotalWagered(data.getTotalWagered() + wager);
         ResolveResult result;
         if (playerWon) {
-            double[] taxed = applyTax(wager * 2);
+            double[] taxed = applyTax(wager * 2, player);
             double payout = taxed[0];
             plugin.getEconomy().depositPlayer(player, payout);
             data.setWins(data.getWins() + 1);
