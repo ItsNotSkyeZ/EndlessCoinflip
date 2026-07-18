@@ -31,7 +31,7 @@ EndlessCoinflip is a clean, feature-rich coinflip plugin built for Paper or Spig
 - **Database Support** — Choose between FILE, SQLite or MySQL with automatic migration and backups
 - **Cooldowns & Match Expiry** — Prevent spam and auto-cancel unjoined matches after a set time
 - **Join Confirmation** — A confirm screen before committing your wager to join a match
-- **Wager Shortcuts** — Type `all`, `half`, `10k`, `1m` etc. instead of the full number
+- **Wager Shortcuts** — Type `all`, `half`, `10k`, `1m` etc, instead of the full number
 - **Animated Results** — Countdown timer and colour flip animation before the winner is revealed
 - **Sound Effects** — Configurable sounds for winning, losing, rolling and the countdown
 - **Disconnect Protection** — Matches cancelled and winnings held until next login if offline
