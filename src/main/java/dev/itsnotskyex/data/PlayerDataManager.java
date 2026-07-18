@@ -2,7 +2,6 @@ package dev.itsnotskyex.data;
 
 import dev.itsnotskyex.EndlessCoinflip;
 import dev.itsnotskyex.storage.FileDataStore;
-import dev.itsnotskyex.storage.LeaderboardEntry;
 import dev.itsnotskyex.storage.LeaderboardPage;
 import dev.itsnotskyex.storage.MysqlDataStore;
 import dev.itsnotskyex.storage.PlayerDataStore;
@@ -12,6 +11,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -185,9 +185,10 @@ public class PlayerDataManager {
     }
 
     public void saveAll() {
-        List<Future<?>> saves = cache.values().stream()
-                .map(data -> ioExecutor.submit(() -> store.save(data)))
-                .toList();
+        List<Future<?>> saves = new ArrayList<>();
+        for (PlayerData data : cache.values()) {
+            saves.add(ioExecutor.submit(() -> store.save(data)));
+        }
         for (Future<?> future : saves) {
             try {
                 future.get(10, TimeUnit.SECONDS);
@@ -197,22 +198,10 @@ public class PlayerDataManager {
         }
     }
 
-    public List<LeaderboardEntry> getLeaderboard(String sortBy, int limit, int offset) {
-        return store.getLeaderboard(sortBy, limit, offset);
-    }
-
-    public int getLeaderboardSize() {
-        return store.getLeaderboardSize();
-    }
-
-    public LeaderboardPage getLeaderboardPage(String sortBy, int limit, int offset) {
-        return store.getLeaderboardPage(sortBy, limit, offset);
-    }
-
     /**
      * Fetches a leaderboard page without ever touching the main thread's storage
      * connection. For non-dedicated-IO stores (File, MySQL) this resolves immediately
-     * on the calling thread, identical to {@link #getLeaderboardPage}.
+     * on the calling thread.
      */
     public CompletableFuture<LeaderboardPage> getLeaderboardPageAsync(String sortBy, int limit, int offset) {
         if (!requiresDedicatedIo) {
