@@ -7,7 +7,7 @@
 
 [![Spigot](https://img.shields.io/badge/Spigot-1.21+-orange)](https://www.spigotmc.org/resources/endlesscoinflip-pvp-coinflip-with-bot-battles-stats-1-21.137052)
 [![Version](https://img.shields.io/badge/Version-0.0.8-blue)](https://github.com/ItsNotSkyeZ/EndlessCoinflip/releases)
-[![Discord](https://img.shields.io/discord/1527399328505790665?label=Discord&logo=discord&color=5865F2)](https://discord.gg/1527399059428610288)
+[![Discord](https://img.shields.io/discord/1527399059428610288?label=Discord&logo=discord&color=5865F2)](https://discord.gg/c5q8rBZQ5A)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
 </div>
