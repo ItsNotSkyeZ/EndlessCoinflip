@@ -40,7 +40,7 @@ public abstract class SqlDataStore implements PlayerDataStore {
     }
 
     @Override
-    public void init() {
+    public synchronized void init() {
         Connection conn = connection();
         if (conn == null) return;
         try (Statement st = conn.createStatement()) {
@@ -71,7 +71,7 @@ public abstract class SqlDataStore implements PlayerDataStore {
     }
 
     @Override
-    public void close() {
+    public synchronized void close() {
         try {
             if (connection != null && !connection.isClosed()) connection.close();
         } catch (SQLException e) {
@@ -80,7 +80,7 @@ public abstract class SqlDataStore implements PlayerDataStore {
     }
 
     @Override
-    public PlayerData load(UUID uuid) {
+    public synchronized PlayerData load(UUID uuid) {
         PlayerData data = new PlayerData(uuid);
         Connection conn = connection();
         if (conn == null) return data;
@@ -129,7 +129,7 @@ public abstract class SqlDataStore implements PlayerDataStore {
     }
 
     @Override
-    public void save(PlayerData data) {
+    public synchronized void save(PlayerData data) {
         Connection conn = connection();
         if (conn == null) return;
 
@@ -211,7 +211,7 @@ public abstract class SqlDataStore implements PlayerDataStore {
     }
 
     @Override
-    public List<LeaderboardEntry> getLeaderboard(String sortBy, int limit, int offset) {
+    public synchronized List<LeaderboardEntry> getLeaderboard(String sortBy, int limit, int offset) {
         List<LeaderboardEntry> entries = new ArrayList<>();
         Connection conn = connection();
         if (conn == null) return entries;
@@ -249,7 +249,7 @@ public abstract class SqlDataStore implements PlayerDataStore {
     }
 
     @Override
-    public int getLeaderboardSize() {
+    public synchronized int getLeaderboardSize() {
         Connection conn = connection();
         if (conn == null) return 0;
         try (Statement st = conn.createStatement(); ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM cf_players")) {
@@ -261,7 +261,7 @@ public abstract class SqlDataStore implements PlayerDataStore {
     }
 
     @Override
-    public List<UUID> getAllUuids() {
+    public synchronized List<UUID> getAllUuids() {
         List<UUID> uuids = new ArrayList<>();
         Connection conn = connection();
         if (conn == null) return uuids;
@@ -279,7 +279,7 @@ public abstract class SqlDataStore implements PlayerDataStore {
     }
 
     @Override
-    public String backup() {
+    public synchronized String backup() {
         Connection conn = connection();
         if (conn == null) return null;
 

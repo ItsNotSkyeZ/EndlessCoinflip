@@ -1,9 +1,9 @@
 package dev.itsnotskyex.data;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class PlayerData {
 
@@ -17,7 +17,7 @@ public class PlayerData {
     private double pendingPayout;
     private double pendingRefund;
     private boolean receivingPrivateInvites = true;
-    private final List<MatchHistoryEntry> history = new ArrayList<>();
+    private final List<MatchHistoryEntry> history = new CopyOnWriteArrayList<>();
 
     public PlayerData(UUID uuid) { this.uuid = uuid; }
 
