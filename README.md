@@ -6,8 +6,9 @@
 **PvP Coinflip with Bot Battles & Stats**
 
 [![Spigot](https://img.shields.io/badge/Spigot-1.21+-orange)](https://www.spigotmc.org/resources/endlesscoinflip-pvp-coinflip-with-bot-battles-stats-1-21.137052)
-[![Version](https://img.shields.io/badge/Version-0.0.7-blue)](https://github.com/ItsNotSkyeZ/EndlessCoinflip/releases)
-[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE) 
+[![Version](https://img.shields.io/badge/Version-0.0.8-blue)](https://github.com/ItsNotSkyeZ/EndlessCoinflip/releases)
+[![Discord](https://img.shields.io/discord/1527399328505790665?label=Discord&logo=discord&color=5865F2)](https://discord.gg/c5q8rBZQ5A)
+[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
 </div>
 
@@ -26,6 +27,7 @@ EndlessCoinflip is a clean, feature-rich coinflip plugin built for Paper or Spig
 - **Player Stats** — Track wins, losses, total wagered, total won, biggest win and biggest loss
 - **Server Tax** — Take a configurable percentage cut from the pot before paying out the winner
 - **Big Win Broadcasts** — Server-wide announcements when a payout meets a configurable threshold
+- **Per-Permission Wager Limits** — Give VIP/donor ranks a higher or lower wager limit than everyone else
 - **Database Support** — Choose between FILE, SQLite or MySQL with automatic migration and backups
 - **Cooldowns & Match Expiry** — Prevent spam and auto-cancel unjoined matches after a set time
 - **Join Confirmation** — A confirm screen before committing your wager to join a match
@@ -64,6 +66,7 @@ EndlessCoinflip is a clean, feature-rich coinflip plugin built for Paper or Spig
 | `/cf accept` | Accept a pending private match invite |
 | `/cf deny` | Deny a pending private match invite |
 | `/cf cancel` | Cancel your active match or pending invite |
+| `/cf toggle` | Toggle whether you receive private match invites |
 | `/cf stats` | View your coinflip statistics |
 | `/cf history` | View your recent coinflip results |
 | `/cf top [page]` | View the leaderboard |
@@ -77,6 +80,7 @@ EndlessCoinflip is a clean, feature-rich coinflip plugin built for Paper or Spig
 |---|---|---|
 | `endlesscoinflip.use` | Allows use of all coinflip commands | `true` |
 | `endlesscoinflip.admin` | Allows use of admin commands such as `/cf reload` | `op` |
+| `endlesscoinflip.wager.<group>` | Sets a per-permission max wager override | `false` |
 
 ---
 
@@ -110,10 +114,16 @@ The built jar will be in `target/`.
 
 ---
 
+## Support
+Need help? Join the Discord server or open an issue on GitHub.
+
+[![Discord](https://img.shields.io/discord/1527399328505790665?label=Join+Discord&logo=discord&color=5865F2&style=for-the-badge)](https://discord.gg/c5q8rBZQ5A)
+
+---
+
 ## Roadmap
 - [ ] PlaceholderAPI — expose stats as placeholders for scoreboards, holograms and more
 - [ ] Custom Economy — built-in economy option for servers without Vault
-- [ ] Per-permission Wager Limits — different min/max wagers per rank or permission group
 - [ ] Win Streak Tracking — track and display current and best win streaks
 - [ ] Spectating — allow players to watch an ongoing match in real time
 
@@ -123,6 +133,6 @@ The built jar will be in `target/`.
 
 Made by **ItsNotSkyeX** — feedback and suggestions welcome!
 
-[Spigot Page](https://www.spigotmc.org/resources/endlesscoinflip-pvp-coinflip-with-bot-battles-stats-1-21.137052) • [Wiki](https://github.com/ItsNotSkyeZ/EndlessCoinflip/wiki)
+[Spigot Page](https://www.spigotmc.org/resources/endlesscoinflip-pvp-coinflip-with-bot-battles-stats-1-21.137052) • [Wiki](https://github.com/ItsNotSkyeZ/EndlessCoinflip/wiki) • [Discord](https://discord.gg/c5q8rBZQ5A)
 
 </div>
