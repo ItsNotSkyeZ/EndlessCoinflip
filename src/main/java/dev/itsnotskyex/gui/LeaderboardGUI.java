@@ -4,7 +4,6 @@ import dev.itsnotskyex.EndlessCoinflip;
 import dev.itsnotskyex.config.ConfigManager;
 import dev.itsnotskyex.manager.CoinflipManager;
 import dev.itsnotskyex.storage.LeaderboardEntry;
-import dev.itsnotskyex.storage.LeaderboardPage;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
@@ -22,6 +21,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 public class LeaderboardGUI implements Listener {
 
@@ -39,14 +39,28 @@ public class LeaderboardGUI implements Listener {
         int entriesPerPage = Math.max(size - 9, 9);
         int requestedPage = Math.max(0, page);
 
-        LeaderboardPage requested = plugin.getPlayerDataManager().getLeaderboardPage(sortBy(), entriesPerPage, requestedPage * entriesPerPage);
-        int totalPages = Math.max(1, (int) Math.ceil(requested.total / (double) entriesPerPage));
-        page = Math.min(requestedPage, totalPages - 1);
+        plugin.getPlayerDataManager().getLeaderboardPageAsync(sortBy(), entriesPerPage, requestedPage * entriesPerPage)
+                .thenCompose(requested -> {
+                    int totalPages = Math.max(1, (int) Math.ceil(requested.total / (double) entriesPerPage));
+                    int resolvedPage = Math.min(requestedPage, totalPages - 1);
 
-        List<LeaderboardEntry> entries = page == requestedPage
-                ? requested.entries
-                : plugin.getPlayerDataManager().getLeaderboardPage(sortBy(), entriesPerPage, page * entriesPerPage).entries;
+                    if (resolvedPage == requestedPage) {
+                        return CompletableFuture.completedFuture(new Resolved(requested.entries, resolvedPage, totalPages));
+                    }
+                    return plugin.getPlayerDataManager().getLeaderboardPageAsync(sortBy(), entriesPerPage, resolvedPage * entriesPerPage)
+                            .thenApply(second -> new Resolved(second.entries, resolvedPage, totalPages));
+                })
+                .thenAccept(resolved -> Bukkit.getScheduler().runTask(plugin, () ->
+                        buildAndOpen(player, resolved.entries, resolved.page, resolved.totalPages, size, entriesPerPage)))
+                .exceptionally(e -> {
+                    plugin.getLogger().warning("Failed to load leaderboard for " + player.getName() + ": " + e.getMessage());
+                    return null;
+                });
+    }
 
+    private record Resolved(List<LeaderboardEntry> entries, int page, int totalPages) {}
+
+    private void buildAndOpen(Player player, List<LeaderboardEntry> entries, int page, int totalPages, int size, int entriesPerPage) {
         String title = c(plugin.getConfig().getString("leaderboard.gui-title", "&0Leaderboard &8({page}/{pages})")
                 .replace("{page}", String.valueOf(page + 1))
                 .replace("{pages}", String.valueOf(totalPages)));

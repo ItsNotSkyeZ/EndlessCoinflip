@@ -6,6 +6,7 @@ import dev.itsnotskyex.manager.CoinflipManager;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
@@ -15,6 +16,11 @@ public class PlayerConnectionListener implements Listener {
 
     public PlayerConnectionListener(EndlessCoinflip plugin) {
         this.plugin = plugin;
+    }
+
+    @EventHandler
+    public void onPreLogin(AsyncPlayerPreLoginEvent event) {
+        plugin.getPlayerDataManager().preload(event.getUniqueId());
     }
 
     @EventHandler

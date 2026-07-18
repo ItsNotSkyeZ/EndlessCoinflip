@@ -12,20 +12,29 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 public class PlayerDataManager {
 
     private final EndlessCoinflip plugin;
-    private final Map<UUID, PlayerData> cache = new HashMap<>();
+    private final Map<UUID, PlayerData> cache = new ConcurrentHashMap<>();
     private final PlayerDataStore store;
-    private final ExecutorService saveExecutor = Executors.newSingleThreadExecutor(r -> {
+    /**
+     * SQLite runs on a single persistent connection, so every load/save/leaderboard
+     * query against it is routed through this one dedicated thread. That guarantees
+     * the connection is never touched concurrently, and never touched by the main
+     * thread, without needing to synchronize the storage layer itself.
+     */
+    private final boolean requiresDedicatedIo;
+    private final ExecutorService ioExecutor = Executors.newSingleThreadExecutor(r -> {
         Thread thread = new Thread(r, "EndlessCoinflip-Save");
         thread.setDaemon(true);
         return thread;
@@ -35,6 +44,7 @@ public class PlayerDataManager {
         this.plugin = plugin;
         String currentType = resolveType();
         this.store = buildStore(currentType);
+        this.requiresDedicatedIo = store instanceof SqliteDataStore;
         this.store.init();
 
         String previousType = readMarker();
@@ -135,19 +145,56 @@ public class PlayerDataManager {
         return true;
     }
 
+    /**
+     * Loads a player's data off the calling thread and populates the cache, so that a
+     * later {@link #get(UUID)} call is a pure cache hit. Intended to be called from
+     * AsyncPlayerPreLoginEvent (already off the main thread) before the player joins.
+     */
+    public void preload(UUID uuid) {
+        if (cache.containsKey(uuid)) return;
+        if (requiresDedicatedIo) {
+            try {
+                cache.put(uuid, ioExecutor.submit(() -> store.load(uuid)).get());
+            } catch (Exception e) {
+                plugin.getLogger().warning("Failed to preload player data for " + uuid + ": " + e.getMessage());
+            }
+        } else {
+            cache.put(uuid, store.load(uuid));
+        }
+    }
+
     public PlayerData get(UUID uuid) {
+        PlayerData cached = cache.get(uuid);
+        if (cached != null) return cached;
+
+        if (requiresDedicatedIo) {
+            plugin.getLogger().warning("Player data for " + uuid + " was requested before it finished preloading; " +
+                    "returning transient defaults and loading it in the background.");
+            ioExecutor.execute(() -> cache.putIfAbsent(uuid, store.load(uuid)));
+            return new PlayerData(uuid);
+        }
+
         return cache.computeIfAbsent(uuid, store::load);
     }
 
     public void save(PlayerData data) {
-        saveExecutor.execute(() -> store.save(data));
+        ioExecutor.execute(() -> store.save(data));
         if (plugin.getServer().getPlayer(data.getUuid()) == null) {
             cache.remove(data.getUuid());
         }
     }
 
     public void saveAll() {
-        cache.values().forEach(store::save);
+        List<Future<?>> saves = cache.values().stream()
+                .map(data -> ioExecutor.submit(() -> store.save(data)))
+                .toList();
+        for (Future<?> future : saves) {
+            try {
+                future.get(10, TimeUnit.SECONDS);
+            } catch (Exception e) {
+                plugin.getLogger().warning("Failed to save a player's data during shutdown: " + e.getMessage());
+            }
+        }
     }
 
     public List<LeaderboardEntry> getLeaderboard(String sortBy, int limit, int offset) {
@@ -162,10 +209,30 @@ public class PlayerDataManager {
         return store.getLeaderboardPage(sortBy, limit, offset);
     }
 
+    /**
+     * Fetches a leaderboard page without ever touching the main thread's storage
+     * connection. For non-dedicated-IO stores (File, MySQL) this resolves immediately
+     * on the calling thread, identical to {@link #getLeaderboardPage}.
+     */
+    public CompletableFuture<LeaderboardPage> getLeaderboardPageAsync(String sortBy, int limit, int offset) {
+        if (!requiresDedicatedIo) {
+            return CompletableFuture.completedFuture(store.getLeaderboardPage(sortBy, limit, offset));
+        }
+        CompletableFuture<LeaderboardPage> future = new CompletableFuture<>();
+        ioExecutor.execute(() -> {
+            try {
+                future.complete(store.getLeaderboardPage(sortBy, limit, offset));
+            } catch (Exception e) {
+                future.completeExceptionally(e);
+            }
+        });
+        return future;
+    }
+
     public void close() {
-        saveExecutor.shutdown();
+        ioExecutor.shutdown();
         try {
-            saveExecutor.awaitTermination(5, TimeUnit.SECONDS);
+            ioExecutor.awaitTermination(5, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }

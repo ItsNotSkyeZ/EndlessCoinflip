@@ -4,7 +4,6 @@ import dev.itsnotskyex.EndlessCoinflip;
 import dev.itsnotskyex.data.PlayerData;
 import dev.itsnotskyex.manager.CoinflipManager;
 import dev.itsnotskyex.storage.LeaderboardEntry;
-import dev.itsnotskyex.storage.LeaderboardPage;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
@@ -15,6 +14,7 @@ import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 public class CoinflipCommand implements CommandExecutor, TabCompleter {
 
@@ -223,14 +223,31 @@ public class CoinflipCommand implements CommandExecutor, TabCompleter {
         String sortBy = plugin.getConfig().getString("leaderboard.sort-by", "total-won");
         int requestedPage = Math.max(1, pageArg) - 1;
 
-        LeaderboardPage requested = plugin.getPlayerDataManager().getLeaderboardPage(sortBy, entriesPerPage, requestedPage * entriesPerPage);
-        int totalPages = Math.max(1, (int) Math.ceil(requested.total / (double) entriesPerPage));
-        int page = Math.min(requestedPage, totalPages - 1);
+        plugin.getPlayerDataManager().getLeaderboardPageAsync(sortBy, entriesPerPage, requestedPage * entriesPerPage)
+                .thenCompose(requested -> {
+                    int totalPages = Math.max(1, (int) Math.ceil(requested.total / (double) entriesPerPage));
+                    int page = Math.min(requestedPage, totalPages - 1);
 
-        List<LeaderboardEntry> entries = page == requestedPage
-                ? requested.entries
-                : plugin.getPlayerDataManager().getLeaderboardPage(sortBy, entriesPerPage, page * entriesPerPage).entries;
+                    if (page == requestedPage) {
+                        return CompletableFuture.completedFuture(new Object[]{requested.entries, page, totalPages});
+                    }
+                    return plugin.getPlayerDataManager().getLeaderboardPageAsync(sortBy, entriesPerPage, page * entriesPerPage)
+                            .thenApply(second -> new Object[]{second.entries, page, totalPages});
+                })
+                .thenAccept(resolved -> Bukkit.getScheduler().runTask(plugin, () -> {
+                    @SuppressWarnings("unchecked")
+                    List<LeaderboardEntry> entries = (List<LeaderboardEntry>) resolved[0];
+                    int page = (int) resolved[1];
+                    int totalPages = (int) resolved[2];
+                    renderLeaderboard(sender, entries, page, totalPages, entriesPerPage, sortBy);
+                }))
+                .exceptionally(e -> {
+                    plugin.getLogger().warning("Failed to load leaderboard for " + sender.getName() + ": " + e.getMessage());
+                    return null;
+                });
+    }
 
+    private void renderLeaderboard(CommandSender sender, List<LeaderboardEntry> entries, int page, int totalPages, int entriesPerPage, String sortBy) {
         for (String line : plugin.getConfig().getStringList("leaderboard.chat-header")) {
             sender.sendMessage(plugin.getConfigManager().color(line
                     .replace("{page}", String.valueOf(page + 1))

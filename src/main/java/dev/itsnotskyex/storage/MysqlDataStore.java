@@ -1,6 +1,8 @@
 package dev.itsnotskyex.storage;
 
 import com.mysql.cj.jdbc.Driver;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 import dev.itsnotskyex.EndlessCoinflip;
 
 import java.sql.Connection;
@@ -17,12 +19,11 @@ public class MysqlDataStore extends SqlDataStore {
         }
     }
 
+    private final HikariDataSource dataSource;
+
     public MysqlDataStore(EndlessCoinflip plugin) {
         super(plugin);
-    }
 
-    @Override
-    protected Connection openConnection() throws SQLException {
         String host = plugin.getConfig().getString("storage.mysql.host", "localhost");
         int port = plugin.getConfig().getInt("storage.mysql.port", 3306);
         String database = plugin.getConfig().getString("storage.mysql.database", "coinflip");
@@ -34,9 +35,34 @@ public class MysqlDataStore extends SqlDataStore {
         try (Connection bootstrap = DriverManager.getConnection("jdbc:mysql://" + host + ":" + port + "/" + params, username, password);
              Statement st = bootstrap.createStatement()) {
             st.executeUpdate("CREATE DATABASE IF NOT EXISTS `" + database + "`");
+        } catch (SQLException e) {
+            plugin.getLogger().severe("Failed to ensure MySQL database exists: " + e.getMessage());
         }
 
-        return DriverManager.getConnection("jdbc:mysql://" + host + ":" + port + "/" + database + params, username, password);
+        HikariConfig config = new HikariConfig();
+        config.setJdbcUrl("jdbc:mysql://" + host + ":" + port + "/" + database + params);
+        config.setUsername(username);
+        config.setPassword(password);
+        config.setPoolName("EndlessCoinflip-MySQL");
+        config.setMaximumPoolSize(plugin.getConfig().getInt("storage.mysql.pool-size", 10));
+        config.setMinimumIdle(2);
+        config.setConnectionTimeout(10_000);
+        this.dataSource = new HikariDataSource(config);
+    }
+
+    @Override
+    protected Connection acquireConnection() throws SQLException {
+        return dataSource.getConnection();
+    }
+
+    @Override
+    protected void releaseConnection(Connection connection) throws SQLException {
+        connection.close();
+    }
+
+    @Override
+    public void close() {
+        dataSource.close();
     }
 
     @Override

@@ -16,33 +16,59 @@ import java.util.UUID;
 public abstract class SqlDataStore implements PlayerDataStore {
 
     protected final EndlessCoinflip plugin;
-    protected Connection connection;
 
     protected SqlDataStore(EndlessCoinflip plugin) {
         this.plugin = plugin;
     }
 
-    protected abstract Connection openConnection() throws SQLException;
     protected abstract String createPlayersTableSql();
     protected abstract String createHistoryTableSql();
     protected abstract String addReceivingPrivateInvitesColumnSql();
     protected abstract String addPendingRefundColumnSql();
 
-    protected synchronized Connection connection() {
+    /**
+     * Acquires a connection to run a query against. MySQL hands out an independent
+     * connection from its pool per call; SQLite hands back its single persistent
+     * connection, which callers must only ever touch from the store's own dedicated
+     * I/O thread.
+     */
+    protected abstract Connection acquireConnection() throws SQLException;
+
+    /**
+     * Releases a connection obtained via {@link #acquireConnection()}. MySQL returns
+     * it to the pool; SQLite is a no-op since the connection is kept open for reuse.
+     */
+    protected abstract void releaseConnection(Connection connection) throws SQLException;
+
+    private Connection connection() {
         try {
-            if (connection == null || connection.isClosed() || !connection.isValid(2)) {
-                connection = openConnection();
-            }
+            return acquireConnection();
         } catch (SQLException e) {
             plugin.getLogger().severe("Failed to open database connection: " + e.getMessage());
+            return null;
         }
-        return connection;
+    }
+
+    private void releaseQuietly(Connection conn) {
+        try {
+            releaseConnection(conn);
+        } catch (SQLException e) {
+            plugin.getLogger().warning("Failed to release database connection: " + e.getMessage());
+        }
     }
 
     @Override
-    public synchronized void init() {
+    public void init() {
         Connection conn = connection();
         if (conn == null) return;
+        try {
+            initSchema(conn);
+        } finally {
+            releaseQuietly(conn);
+        }
+    }
+
+    private void initSchema(Connection conn) {
         try (Statement st = conn.createStatement()) {
             st.executeUpdate(createPlayersTableSql());
             st.executeUpdate(createHistoryTableSql());
@@ -71,65 +97,60 @@ public abstract class SqlDataStore implements PlayerDataStore {
     }
 
     @Override
-    public synchronized void close() {
-        try {
-            if (connection != null && !connection.isClosed()) connection.close();
-        } catch (SQLException e) {
-            plugin.getLogger().warning("Failed to close database connection: " + e.getMessage());
-        }
-    }
-
-    @Override
-    public synchronized PlayerData load(UUID uuid) {
+    public PlayerData load(UUID uuid) {
         PlayerData data = new PlayerData(uuid);
         Connection conn = connection();
         if (conn == null) return data;
 
-        try (PreparedStatement ps = conn.prepareStatement(
-                "SELECT wins, losses, total_wagered, total_won, biggest_win, biggest_loss, pending_payout, pending_refund, receiving_private_invites FROM cf_players WHERE uuid = ?")) {
-            ps.setString(1, uuid.toString());
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    data.setWins(rs.getInt("wins"));
-                    data.setLosses(rs.getInt("losses"));
-                    data.setTotalWagered(rs.getDouble("total_wagered"));
-                    data.setTotalWon(rs.getDouble("total_won"));
-                    data.setBiggestWin(rs.getDouble("biggest_win"));
-                    data.setBiggestLoss(rs.getDouble("biggest_loss"));
-                    data.setPendingPayout(rs.getDouble("pending_payout"));
-                    data.setPendingRefund(rs.getDouble("pending_refund"));
-                    data.setReceivingPrivateInvites(rs.getBoolean("receiving_private_invites"));
+        try {
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "SELECT wins, losses, total_wagered, total_won, biggest_win, biggest_loss, pending_payout, pending_refund, receiving_private_invites FROM cf_players WHERE uuid = ?")) {
+                ps.setString(1, uuid.toString());
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        data.setWins(rs.getInt("wins"));
+                        data.setLosses(rs.getInt("losses"));
+                        data.setTotalWagered(rs.getDouble("total_wagered"));
+                        data.setTotalWon(rs.getDouble("total_won"));
+                        data.setBiggestWin(rs.getDouble("biggest_win"));
+                        data.setBiggestLoss(rs.getDouble("biggest_loss"));
+                        data.setPendingPayout(rs.getDouble("pending_payout"));
+                        data.setPendingRefund(rs.getDouble("pending_refund"));
+                        data.setReceivingPrivateInvites(rs.getBoolean("receiving_private_invites"));
+                    }
                 }
+            } catch (SQLException e) {
+                plugin.getLogger().warning("Failed to load player data for " + uuid + ": " + e.getMessage());
+                return data;
             }
-        } catch (SQLException e) {
-            plugin.getLogger().warning("Failed to load player data for " + uuid + ": " + e.getMessage());
-            return data;
-        }
 
-        List<MatchHistoryEntry> history = new ArrayList<>();
-        try (PreparedStatement ps = conn.prepareStatement(
-                "SELECT opponent, wager, won, vs_bot, ts FROM cf_history WHERE uuid = ? ORDER BY ts DESC")) {
-            ps.setString(1, uuid.toString());
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    history.add(new MatchHistoryEntry(
-                            rs.getString("opponent"),
-                            rs.getDouble("wager"),
-                            rs.getBoolean("won"),
-                            rs.getBoolean("vs_bot"),
-                            rs.getLong("ts")
-                    ));
+            List<MatchHistoryEntry> history = new ArrayList<>();
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "SELECT opponent, wager, won, vs_bot, ts FROM cf_history WHERE uuid = ? ORDER BY ts DESC")) {
+                ps.setString(1, uuid.toString());
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        history.add(new MatchHistoryEntry(
+                                rs.getString("opponent"),
+                                rs.getDouble("wager"),
+                                rs.getBoolean("won"),
+                                rs.getBoolean("vs_bot"),
+                                rs.getLong("ts")
+                        ));
+                    }
                 }
+            } catch (SQLException e) {
+                plugin.getLogger().warning("Failed to load history for " + uuid + ": " + e.getMessage());
             }
-        } catch (SQLException e) {
-            plugin.getLogger().warning("Failed to load history for " + uuid + ": " + e.getMessage());
+            data.loadHistory(history);
+            return data;
+        } finally {
+            releaseQuietly(conn);
         }
-        data.loadHistory(history);
-        return data;
     }
 
     @Override
-    public synchronized void save(PlayerData data) {
+    public void save(PlayerData data) {
         Connection conn = connection();
         if (conn == null) return;
 
@@ -207,61 +228,68 @@ public abstract class SqlDataStore implements PlayerDataStore {
                 conn.setAutoCommit(true);
             } catch (SQLException ignored) {
             }
+            releaseQuietly(conn);
         }
     }
 
     @Override
-    public synchronized List<LeaderboardEntry> getLeaderboard(String sortBy, int limit, int offset) {
+    public List<LeaderboardEntry> getLeaderboard(String sortBy, int limit, int offset) {
         List<LeaderboardEntry> entries = new ArrayList<>();
         Connection conn = connection();
         if (conn == null) return entries;
 
-        String column = switch (sortBy) {
-            case "wins" -> "wins";
-            case "losses" -> "losses";
-            case "total-wagered" -> "total_wagered";
-            case "biggest-win" -> "biggest_win";
-            case "biggest-loss" -> "biggest_loss";
-            default -> "total_won";
-        };
+        try {
+            String column = switch (sortBy) {
+                case "wins" -> "wins";
+                case "losses" -> "losses";
+                case "total-wagered" -> "total_wagered";
+                case "biggest-win" -> "biggest_win";
+                case "biggest-loss" -> "biggest_loss";
+                default -> "total_won";
+            };
 
-        String sql = "SELECT uuid, wins, losses, total_wagered, total_won, biggest_win, biggest_loss FROM cf_players ORDER BY " + column + " DESC LIMIT ? OFFSET ?";
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, limit);
-            ps.setInt(2, offset);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    entries.add(new LeaderboardEntry(
-                            UUID.fromString(rs.getString("uuid")),
-                            rs.getInt("wins"),
-                            rs.getInt("losses"),
-                            rs.getDouble("total_wagered"),
-                            rs.getDouble("total_won"),
-                            rs.getDouble("biggest_win"),
-                            rs.getDouble("biggest_loss")
-                    ));
+            String sql = "SELECT uuid, wins, losses, total_wagered, total_won, biggest_win, biggest_loss FROM cf_players ORDER BY " + column + " DESC LIMIT ? OFFSET ?";
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setInt(1, limit);
+                ps.setInt(2, offset);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        entries.add(new LeaderboardEntry(
+                                UUID.fromString(rs.getString("uuid")),
+                                rs.getInt("wins"),
+                                rs.getInt("losses"),
+                                rs.getDouble("total_wagered"),
+                                rs.getDouble("total_won"),
+                                rs.getDouble("biggest_win"),
+                                rs.getDouble("biggest_loss")
+                        ));
+                    }
                 }
+            } catch (SQLException e) {
+                plugin.getLogger().warning("Failed to load leaderboard: " + e.getMessage());
             }
-        } catch (SQLException e) {
-            plugin.getLogger().warning("Failed to load leaderboard: " + e.getMessage());
+            return entries;
+        } finally {
+            releaseQuietly(conn);
         }
-        return entries;
     }
 
     @Override
-    public synchronized int getLeaderboardSize() {
+    public int getLeaderboardSize() {
         Connection conn = connection();
         if (conn == null) return 0;
         try (Statement st = conn.createStatement(); ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM cf_players")) {
             if (rs.next()) return rs.getInt(1);
         } catch (SQLException e) {
             plugin.getLogger().warning("Failed to count leaderboard size: " + e.getMessage());
+        } finally {
+            releaseQuietly(conn);
         }
         return 0;
     }
 
     @Override
-    public synchronized List<UUID> getAllUuids() {
+    public List<UUID> getAllUuids() {
         List<UUID> uuids = new ArrayList<>();
         Connection conn = connection();
         if (conn == null) return uuids;
@@ -274,31 +302,37 @@ public abstract class SqlDataStore implements PlayerDataStore {
             }
         } catch (SQLException e) {
             plugin.getLogger().warning("Failed to list players: " + e.getMessage());
+        } finally {
+            releaseQuietly(conn);
         }
         return uuids;
     }
 
     @Override
-    public synchronized String backup() {
+    public String backup() {
         Connection conn = connection();
         if (conn == null) return null;
 
-        String suffix = "";
-        int n = 1;
-        while (tableExists(conn, "cf_players_backup" + suffix)) {
-            suffix = "_" + n;
-            n++;
-        }
-        String playersBackup = "cf_players_backup" + suffix;
-        String historyBackup = "cf_history_backup" + suffix;
+        try {
+            String suffix = "";
+            int n = 1;
+            while (tableExists(conn, "cf_players_backup" + suffix)) {
+                suffix = "_" + n;
+                n++;
+            }
+            String playersBackup = "cf_players_backup" + suffix;
+            String historyBackup = "cf_history_backup" + suffix;
 
-        try (Statement st = conn.createStatement()) {
-            st.executeUpdate("ALTER TABLE cf_players RENAME TO " + playersBackup);
-            st.executeUpdate("ALTER TABLE cf_history RENAME TO " + historyBackup);
-            return playersBackup + "/" + historyBackup + " tables";
-        } catch (SQLException e) {
-            plugin.getLogger().warning("Failed to rename old tables for backup: " + e.getMessage());
-            return null;
+            try (Statement st = conn.createStatement()) {
+                st.executeUpdate("ALTER TABLE cf_players RENAME TO " + playersBackup);
+                st.executeUpdate("ALTER TABLE cf_history RENAME TO " + historyBackup);
+                return playersBackup + "/" + historyBackup + " tables";
+            } catch (SQLException e) {
+                plugin.getLogger().warning("Failed to rename old tables for backup: " + e.getMessage());
+                return null;
+            }
+        } finally {
+            releaseQuietly(conn);
         }
     }
 

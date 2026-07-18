@@ -51,6 +51,11 @@
             <artifactId>mysql-connector-j</artifactId>
             <version>8.3.0</version>
         </dependency>
+        <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+            <version>5.1.0</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -94,6 +99,10 @@
                                 <relocation>
                                     <pattern>com.mysql</pattern>
                                     <shadedPattern>dev.itsnotskyex.libs.mysql</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>com.zaxxer.hikari</pattern>
+                                    <shadedPattern>dev.itsnotskyex.libs.hikari</shadedPattern>
                                 </relocation>
                             </relocations>
                         </configuration>

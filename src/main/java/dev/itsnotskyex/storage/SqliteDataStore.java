@@ -8,6 +8,12 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
+/**
+ * Backed by a single persistent SQLite connection. This connection must only ever be
+ * touched by one thread at a time — callers are responsible for routing all access
+ * through a single dedicated I/O thread (see PlayerDataManager) rather than the server's
+ * main thread or any pool of threads.
+ */
 public class SqliteDataStore extends SqlDataStore {
 
     static {
@@ -18,6 +24,7 @@ public class SqliteDataStore extends SqlDataStore {
     }
 
     private final File dbFile;
+    private Connection connection;
 
     public SqliteDataStore(EndlessCoinflip plugin) {
         super(plugin);
@@ -25,9 +32,26 @@ public class SqliteDataStore extends SqlDataStore {
     }
 
     @Override
-    protected Connection openConnection() throws SQLException {
-        plugin.getDataFolder().mkdirs();
-        return DriverManager.getConnection("jdbc:sqlite:" + dbFile.getAbsolutePath());
+    protected Connection acquireConnection() throws SQLException {
+        if (connection == null || connection.isClosed() || !connection.isValid(2)) {
+            plugin.getDataFolder().mkdirs();
+            connection = DriverManager.getConnection("jdbc:sqlite:" + dbFile.getAbsolutePath());
+        }
+        return connection;
+    }
+
+    @Override
+    protected void releaseConnection(Connection connection) {
+        // Kept open for reuse — this store's single connection is never returned to a pool.
+    }
+
+    @Override
+    public void close() {
+        try {
+            if (connection != null && !connection.isClosed()) connection.close();
+        } catch (SQLException e) {
+            plugin.getLogger().warning("Failed to close database connection: " + e.getMessage());
+        }
     }
 
     @Override
