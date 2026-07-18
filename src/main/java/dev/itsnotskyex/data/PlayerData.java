@@ -15,6 +15,7 @@ public class PlayerData {
     private double biggestWin;
     private double biggestLoss;
     private double pendingPayout;
+    private double pendingRefund;
     private boolean receivingPrivateInvites = true;
     private final List<MatchHistoryEntry> history = new ArrayList<>();
 
@@ -47,6 +48,8 @@ public class PlayerData {
     public void setBiggestLoss(double v)   { this.biggestLoss = v; }
     public double getPendingPayout()       { return pendingPayout; }
     public void setPendingPayout(double v) { this.pendingPayout = v; }
+    public double getPendingRefund()       { return pendingRefund; }
+    public void setPendingRefund(double v) { this.pendingRefund = v; }
     public boolean isReceivingPrivateInvites()      { return receivingPrivateInvites; }
     public void setReceivingPrivateInvites(boolean v) { this.receivingPrivateInvites = v; }
 }

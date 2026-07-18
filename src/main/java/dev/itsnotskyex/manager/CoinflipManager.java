@@ -86,12 +86,19 @@ public class CoinflipManager {
     public void refundAllActive() {
         for (CoinflipMatch match : activeMatches) {
             plugin.getEconomy().depositPlayer(plugin.getServer().getOfflinePlayer(match.hostUuid), match.wager);
+            markRefunded(match.hostUuid, match.wager);
         }
         activeMatches.clear();
         for (Map.Entry<UUID, Double> entry : activeBotMatches.entrySet()) {
             plugin.getEconomy().depositPlayer(plugin.getServer().getOfflinePlayer(entry.getKey()), entry.getValue());
+            markRefunded(entry.getKey(), entry.getValue());
         }
         activeBotMatches.clear();
+    }
+
+    public void markRefunded(UUID uuid, double amount) {
+        PlayerData data = plugin.getPlayerDataManager().get(uuid);
+        data.setPendingRefund(data.getPendingRefund() + amount);
     }
 
     public CoinflipMatch removeMatch(UUID hostUuid) {

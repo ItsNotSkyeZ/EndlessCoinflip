@@ -62,6 +62,7 @@ bot-battle-cancelled: "&a&l(!) &aBot battle cancelled."
 bot-battle-invalid-amount: "&c&l(!) &cInvalid amount entered."
 
 pending-payout: "&a&l[!] &aYou received a pending coinflip payout of &f{amount}&a!"
+refunded-on-restart: "&a&l[!] &aYour wager of &f{amount}&a was refunded because the server restarted while your coinflip was pending."
 
 reload-success: "&a&l(!) &aConfig reloaded successfully."
 reload-failed: "&c&l(!) &cConfig failed to reload — check console for a YAML error. Your previous settings are still active."

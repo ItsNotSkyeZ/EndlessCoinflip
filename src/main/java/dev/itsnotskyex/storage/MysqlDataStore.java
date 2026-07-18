@@ -50,12 +50,18 @@ public class MysqlDataStore extends SqlDataStore {
                 "biggest_win DOUBLE NOT NULL DEFAULT 0," +
                 "biggest_loss DOUBLE NOT NULL DEFAULT 0," +
                 "pending_payout DOUBLE NOT NULL DEFAULT 0," +
+                "pending_refund DOUBLE NOT NULL DEFAULT 0," +
                 "receiving_private_invites BOOLEAN NOT NULL DEFAULT TRUE)";
     }
 
     @Override
     protected String addReceivingPrivateInvitesColumnSql() {
         return "ALTER TABLE cf_players ADD COLUMN receiving_private_invites BOOLEAN NOT NULL DEFAULT TRUE";
+    }
+
+    @Override
+    protected String addPendingRefundColumnSql() {
+        return "ALTER TABLE cf_players ADD COLUMN pending_refund DOUBLE NOT NULL DEFAULT 0";
     }
 
     @Override

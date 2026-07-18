@@ -26,6 +26,7 @@ public abstract class SqlDataStore implements PlayerDataStore {
     protected abstract String createPlayersTableSql();
     protected abstract String createHistoryTableSql();
     protected abstract String addReceivingPrivateInvitesColumnSql();
+    protected abstract String addPendingRefundColumnSql();
 
     protected synchronized Connection connection() {
         try {
@@ -63,6 +64,10 @@ public abstract class SqlDataStore implements PlayerDataStore {
             st.executeUpdate(addReceivingPrivateInvitesColumnSql());
         } catch (SQLException ignored) {
         }
+        try (Statement st = conn.createStatement()) {
+            st.executeUpdate(addPendingRefundColumnSql());
+        } catch (SQLException ignored) {
+        }
     }
 
     @Override
@@ -81,7 +86,7 @@ public abstract class SqlDataStore implements PlayerDataStore {
         if (conn == null) return data;
 
         try (PreparedStatement ps = conn.prepareStatement(
-                "SELECT wins, losses, total_wagered, total_won, biggest_win, biggest_loss, pending_payout, receiving_private_invites FROM cf_players WHERE uuid = ?")) {
+                "SELECT wins, losses, total_wagered, total_won, biggest_win, biggest_loss, pending_payout, pending_refund, receiving_private_invites FROM cf_players WHERE uuid = ?")) {
             ps.setString(1, uuid.toString());
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -92,6 +97,7 @@ public abstract class SqlDataStore implements PlayerDataStore {
                     data.setBiggestWin(rs.getDouble("biggest_win"));
                     data.setBiggestLoss(rs.getDouble("biggest_loss"));
                     data.setPendingPayout(rs.getDouble("pending_payout"));
+                    data.setPendingRefund(rs.getDouble("pending_refund"));
                     data.setReceivingPrivateInvites(rs.getBoolean("receiving_private_invites"));
                 }
             }
@@ -140,7 +146,7 @@ public abstract class SqlDataStore implements PlayerDataStore {
 
             if (exists) {
                 try (PreparedStatement ps = conn.prepareStatement(
-                        "UPDATE cf_players SET wins=?, losses=?, total_wagered=?, total_won=?, biggest_win=?, biggest_loss=?, pending_payout=?, receiving_private_invites=? WHERE uuid=?")) {
+                        "UPDATE cf_players SET wins=?, losses=?, total_wagered=?, total_won=?, biggest_win=?, biggest_loss=?, pending_payout=?, pending_refund=?, receiving_private_invites=? WHERE uuid=?")) {
                     ps.setInt(1, data.getWins());
                     ps.setInt(2, data.getLosses());
                     ps.setDouble(3, data.getTotalWagered());
@@ -148,13 +154,14 @@ public abstract class SqlDataStore implements PlayerDataStore {
                     ps.setDouble(5, data.getBiggestWin());
                     ps.setDouble(6, data.getBiggestLoss());
                     ps.setDouble(7, data.getPendingPayout());
-                    ps.setBoolean(8, data.isReceivingPrivateInvites());
-                    ps.setString(9, data.getUuid().toString());
+                    ps.setDouble(8, data.getPendingRefund());
+                    ps.setBoolean(9, data.isReceivingPrivateInvites());
+                    ps.setString(10, data.getUuid().toString());
                     ps.executeUpdate();
                 }
             } else {
                 try (PreparedStatement ps = conn.prepareStatement(
-                        "INSERT INTO cf_players (uuid, wins, losses, total_wagered, total_won, biggest_win, biggest_loss, pending_payout, receiving_private_invites) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
+                        "INSERT INTO cf_players (uuid, wins, losses, total_wagered, total_won, biggest_win, biggest_loss, pending_payout, pending_refund, receiving_private_invites) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
                     ps.setString(1, data.getUuid().toString());
                     ps.setInt(2, data.getWins());
                     ps.setInt(3, data.getLosses());
@@ -163,7 +170,8 @@ public abstract class SqlDataStore implements PlayerDataStore {
                     ps.setDouble(6, data.getBiggestWin());
                     ps.setDouble(7, data.getBiggestLoss());
                     ps.setDouble(8, data.getPendingPayout());
-                    ps.setBoolean(9, data.isReceivingPrivateInvites());
+                    ps.setDouble(9, data.getPendingRefund());
+                    ps.setBoolean(10, data.isReceivingPrivateInvites());
                     ps.executeUpdate();
                 }
             }

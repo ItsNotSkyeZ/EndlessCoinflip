@@ -46,6 +46,7 @@ public class FileDataStore implements PlayerDataStore {
         data.setBiggestWin(yml.getDouble("biggest-win", 0));
         data.setBiggestLoss(yml.getDouble("biggest-loss", 0));
         data.setPendingPayout(yml.getDouble("pending-payout", 0));
+        data.setPendingRefund(yml.getDouble("pending-refund", 0));
         data.setReceivingPrivateInvites(yml.getBoolean("receiving-private-invites", true));
 
         List<MatchHistoryEntry> history = new ArrayList<>();
@@ -78,6 +79,7 @@ public class FileDataStore implements PlayerDataStore {
         yml.set("biggest-win", data.getBiggestWin());
         yml.set("biggest-loss", data.getBiggestLoss());
         yml.set("pending-payout", data.getPendingPayout());
+        yml.set("pending-refund", data.getPendingRefund());
         yml.set("receiving-private-invites", data.isReceivingPrivateInvites());
 
         List<Map<String, Object>> historyList = new ArrayList<>();

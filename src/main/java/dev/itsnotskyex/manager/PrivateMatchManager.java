@@ -55,6 +55,7 @@ public class PrivateMatchManager {
         for (PrivateInvite invite : new ArrayList<>(byHost.values())) {
             if (invite.expiryTask != null) invite.expiryTask.cancel();
             plugin.getEconomy().depositPlayer(plugin.getServer().getOfflinePlayer(invite.hostUuid), invite.wager);
+            plugin.getCoinflipManager().markRefunded(invite.hostUuid, invite.wager);
         }
         byHost.clear();
         byTarget.clear();

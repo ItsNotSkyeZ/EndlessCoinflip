@@ -29,6 +29,13 @@ public class PlayerConnectionListener implements Listener {
             plugin.getEconomy().depositPlayer(player, amount);
             player.sendMessage(plugin.getConfigManager().getMessage("pending-payout", "amount", CoinflipManager.fmt(amount)));
         }
+
+        if (data.getPendingRefund() > 0) {
+            double amount = data.getPendingRefund();
+            data.setPendingRefund(0);
+            plugin.getPlayerDataManager().save(data);
+            player.sendMessage(plugin.getConfigManager().getMessage("refunded-on-restart", "amount", CoinflipManager.fmt(amount)));
+        }
     }
 
     @EventHandler
