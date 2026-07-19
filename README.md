@@ -25,7 +25,8 @@ EndlessCoinflip is a clean, feature-rich coinflip plugin built for Paper or Spig
 - **Leaderboards** — Top players by wins, losses, wagered, biggest win and more via `/cf top`
 - **Match History** — View your recent results in a paginated GUI
 - **Player Stats** — Track wins, losses, total wagered, total won, biggest win and biggest loss
-- **Server Tax** — Take a configurable percentage cut from the pot before paying out the winner
+- **Server Tax** — Take a configurable percentage cut from the pot before paying out the winner, with an optional permission to exempt specific players
+- **PlaceholderAPI Support** — Expose wins, losses, wagered, won, biggest win/loss, ratio and leaderboard rank as placeholders
 - **Big Win Broadcasts** — Server-wide announcements when a payout meets a configurable threshold
 - **Per-Permission Wager Limits** — Give VIP/donor ranks a higher or lower wager limit than everyone else
 - **Database Support** — Choose between FILE, SQLite or MySQL with automatic migration and backups
@@ -81,6 +82,7 @@ EndlessCoinflip is a clean, feature-rich coinflip plugin built for Paper or Spig
 | `endlesscoinflip.use` | Allows use of all coinflip commands | `true` |
 | `endlesscoinflip.admin` | Allows use of admin commands such as `/cf reload` | `op` |
 | `endlesscoinflip.wager.<group>` | Sets a per-permission max wager override | `false` |
+| `endlesscoinflip.notax` | Exempts you from the server tax when you win a coinflip | `false` |
 
 ---
 
@@ -102,6 +104,26 @@ storage:
 
 Switching storage type automatically migrates your existing data and backs up the old storage — nothing is ever deleted.
 
+### PlaceholderAPI
+If PlaceholderAPI is installed, EndlessCoinflip registers these placeholders automatically — no setup needed:
+
+| Placeholder | Description |
+|---|---|
+| `%coinflip_wins%` | Player's win count |
+| `%coinflip_losses%` | Player's loss count |
+| `%coinflip_total_wagered%` | Player's total amount wagered |
+| `%coinflip_total_won%` | Player's total amount won |
+| `%coinflip_biggest_win%` | Player's biggest single win |
+| `%coinflip_biggest_loss%` | Player's biggest single loss |
+| `%coinflip_ratio%` | Player's win:loss ratio |
+| `%coinflip_rank%` | Player's leaderboard position, refreshed every `placeholders.rank-refresh-seconds` |
+
+These only resolve for online players. Test them with `/papi parse <player> <placeholder>`.
+
+For holograms and scoreboards showing the overall leaderboard (not tied to a specific viewer), use the `top_<sort-stat>_<position>_<field>` placeholders, e.g. `%coinflip_top_wins_1_name%`, `%coinflip_top_total_won_1_total_won%`, `%coinflip_top_biggest_loss_3_name%`. `<field>` defaults to `name` if omitted (e.g. `%coinflip_top_wins_1%`).
+
+Each stat (`wins`, `losses`, `total_wagered`, `total_won`, `biggest_win`, `biggest_loss`) is its own independently-ranked leaderboard — a "top by losses" hologram and a "top by wins" hologram can run side by side without affecting each other or `/cf top`. `<field>` can be any of `name`, `wins`, `losses`, `total_wagered`, `total_won`, `biggest_win`, `biggest_loss`, `ratio`. All rankings refresh together every `placeholders.rank-refresh-seconds`.
+
 ---
 
 ## Building
@@ -122,7 +144,6 @@ Need help? Join the Discord server or open an issue on GitHub.
 ---
 
 ## Roadmap
-- [ ] PlaceholderAPI — expose stats as placeholders for scoreboards, holograms and more
 - [ ] Custom Economy — built-in economy option for servers without Vault
 - [ ] Win Streak Tracking — track and display current and best win streaks
 - [ ] Spectating — allow players to watch an ongoing match in real time

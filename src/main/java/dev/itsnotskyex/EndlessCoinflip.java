@@ -9,6 +9,7 @@ import dev.itsnotskyex.gui.CoinflipChatListener;
 import dev.itsnotskyex.gui.HistoryGUI;
 import dev.itsnotskyex.gui.LeaderboardGUI;
 import dev.itsnotskyex.gui.PlayerConnectionListener;
+import dev.itsnotskyex.integration.CoinflipPlaceholders;
 import dev.itsnotskyex.manager.CoinflipManager;
 import dev.itsnotskyex.manager.PrivateMatchManager;
 import net.milkbowl.vault.economy.Economy;
@@ -28,6 +29,7 @@ public class EndlessCoinflip extends JavaPlugin {
     private HistoryGUI historyGUI;
     private LeaderboardGUI leaderboardGUI;
     private Economy economy;
+    private CoinflipPlaceholders placeholders;
 
     @Override
     public void onEnable() {
@@ -63,11 +65,22 @@ public class EndlessCoinflip extends JavaPlugin {
         long expiryCheckTicks = 20L * getConfig().getInt("match-expiry.check-interval-seconds", 30);
         getServer().getScheduler().runTaskTimer(this, () -> coinflipManager.checkExpiredMatches(), expiryCheckTicks, expiryCheckTicks);
 
+        if (getServer().getPluginManager().getPlugin("PlaceholderAPI") != null) {
+            placeholders = new CoinflipPlaceholders(this);
+            placeholders.register();
+            long rankRefreshTicks = 20L * getConfig().getInt("placeholders.rank-refresh-seconds", 30);
+            getServer().getScheduler().runTaskTimerAsynchronously(this, playerDataManager::refreshRanks, 0L, rankRefreshTicks);
+            getLogger().info("Hooked into PlaceholderAPI.");
+        }
+
         getLogger().info("EndlessCoinflip v" + getDescription().getVersion() + " enabled.");
     }
 
     @Override
     public void onDisable() {
+        if (placeholders != null) {
+            placeholders.unregister();
+        }
         if (coinflipManager != null) {
             coinflipManager.refundAllActive();
         }

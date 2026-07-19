@@ -1,10 +1,9 @@
 # =============================================
-#           EndlessCoinflip by ItsNotSkyeX
+#       EndlessCoinflip by ItsNotSkyeX
 #   A feature-rich Coinflip plugin for
 #   any Spigot/Paper server with Vault.
 #
 #   Use & for colour codes e.g. &a = green
-#   Placeholders: {wager}, {opponent}, etc.
 # =============================================
 
 # =============================================
@@ -47,6 +46,14 @@ settings:
 wager-limits:
   # endlesscoinflip.vip: 5000000
   # endlesscoinflip.mvp: 10000000
+
+# =============================================
+#              PLACEHOLDERAPI
+# =============================================
+# Only used if PlaceholderAPI is installed. Controls how often %coinflip_rank%
+# is recalculated in the background.
+placeholders:
+  rank-refresh-seconds: 30
 
 # =============================================
 #                    GUI

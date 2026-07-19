@@ -7,10 +7,13 @@ import dev.itsnotskyex.storage.MysqlDataStore;
 import dev.itsnotskyex.storage.PlayerDataStore;
 import dev.itsnotskyex.storage.SqliteDataStore;
 
+import dev.itsnotskyex.storage.LeaderboardEntry;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -23,12 +26,30 @@ public class PlayerDataManager {
     private final EndlessCoinflip plugin;
     private final Map<UUID, PlayerData> cache = new ConcurrentHashMap<>();
     private final PlayerDataStore store;
+    private static final List<String> LEADERBOARD_STATS = List.of(
+            "wins", "losses", "total-wagered", "total-won", "biggest-win", "biggest-loss");
+
+    private volatile Map<UUID, Integer> rankCache = Map.of();
+    private volatile Map<String, List<LeaderboardEntry>> topEntriesByStat = Map.of();
 
     public PlayerDataManager(EndlessCoinflip plugin) {
         this.plugin = plugin;
-        String currentType = resolveType();
-        this.store = buildStore(currentType);
-        this.store.init();
+        String configuredType = resolveType();
+
+        PlayerDataStore builtStore;
+        String currentType;
+        try {
+            builtStore = buildStore(configuredType);
+            builtStore.init();
+            currentType = configuredType;
+        } catch (Exception e) {
+            plugin.getLogger().warning("Failed to initialize " + configuredType + " storage: " + e.getMessage()
+                    + ". Falling back to FILE storage for now — check your storage settings in config.yml.");
+            builtStore = new FileDataStore(plugin);
+            builtStore.init();
+            currentType = "FILE";
+        }
+        this.store = builtStore;
 
         String previousType = readMarker();
         if (previousType == null) {
@@ -79,8 +100,15 @@ public class PlayerDataManager {
     }
 
     private boolean migrate(String fromType, String toType) {
-        PlayerDataStore oldStore = buildStore(fromType);
-        oldStore.init();
+        PlayerDataStore oldStore;
+        try {
+            oldStore = buildStore(fromType);
+            oldStore.init();
+        } catch (Exception e) {
+            plugin.getLogger().warning("Failed to connect to previous " + fromType + " storage for migration: "
+                    + e.getMessage() + ". Skipping migration, will retry on next restart.");
+            return false;
+        }
 
         List<UUID> uuids;
         try {
@@ -146,6 +174,46 @@ public class PlayerDataManager {
                 "returning transient defaults and loading it in the background.");
         store.load(uuid).thenAccept(data -> cache.putIfAbsent(uuid, data));
         return new PlayerData(uuid);
+    }
+
+    public PlayerData peek(UUID uuid) {
+        return cache.get(uuid);
+    }
+
+    public int getRank(UUID uuid) {
+        return rankCache.getOrDefault(uuid, -1);
+    }
+
+    public LeaderboardEntry getTopEntry(String statSortKey, int position) {
+        List<LeaderboardEntry> entries = topEntriesByStat.getOrDefault(statSortKey, List.of());
+        return position >= 1 && position <= entries.size() ? entries.get(position - 1) : null;
+    }
+
+    public void refreshRanks() {
+        String sortBy = plugin.getConfig().getString("leaderboard.sort-by", "total-won");
+        store.getLeaderboardSize().thenCompose(size -> {
+            int limit = Math.max(size, 1);
+            List<CompletableFuture<Map.Entry<String, List<LeaderboardEntry>>>> futures = LEADERBOARD_STATS.stream()
+                    .map(stat -> store.getLeaderboard(stat, limit, 0)
+                            .thenApply(entries -> Map.entry(stat, entries)))
+                    .toList();
+            return CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new))
+                    .thenApply(v -> futures.stream()
+                            .map(CompletableFuture::join)
+                            .collect(java.util.stream.Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+        }).thenAccept(byStat -> {
+            topEntriesByStat = byStat;
+
+            List<LeaderboardEntry> ranked = byStat.getOrDefault(sortBy, List.of());
+            Map<UUID, Integer> ranks = new HashMap<>();
+            for (int i = 0; i < ranked.size(); i++) {
+                ranks.put(ranked.get(i).uuid, i + 1);
+            }
+            rankCache = ranks;
+        }).exceptionally(e -> {
+            plugin.getLogger().warning("Failed to refresh leaderboard ranks: " + e.getMessage());
+            return null;
+        });
     }
 
     public void save(PlayerData data) {
