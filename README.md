@@ -136,13 +136,6 @@ The built jar will be in `target/`.
 
 ---
 
-## Support
-Need help? Join the Discord server or open an issue on GitHub.
-
-[![Discord](https://img.shields.io/discord/1527399328505790665?label=Join+Discord&logo=discord&color=5865F2&style=for-the-badge)](https://discord.gg/c5q8rBZQ5A)
-
----
-
 ## Roadmap
 - [ ] Custom Economy — built-in economy option for servers without Vault
 - [ ] Win Streak Tracking — track and display current and best win streaks
