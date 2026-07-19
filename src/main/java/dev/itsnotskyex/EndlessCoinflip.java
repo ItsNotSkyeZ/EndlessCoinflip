@@ -13,10 +13,14 @@ import dev.itsnotskyex.integration.CoinflipPlaceholders;
 import dev.itsnotskyex.manager.CoinflipManager;
 import dev.itsnotskyex.manager.PrivateMatchManager;
 import net.milkbowl.vault.economy.Economy;
+import org.bstats.bukkit.Metrics;
+import org.bstats.charts.SimplePie;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class EndlessCoinflip extends JavaPlugin {
+
+    private static final int BSTATS_PLUGIN_ID = 32766;
 
     private static EndlessCoinflip instance;
 
@@ -73,6 +77,8 @@ public class EndlessCoinflip extends JavaPlugin {
             getLogger().info("Hooked into PlaceholderAPI.");
         }
 
+        setupMetrics();
+
         getLogger().info("EndlessCoinflip v" + getDescription().getVersion() + " enabled.");
     }
 
@@ -92,6 +98,11 @@ public class EndlessCoinflip extends JavaPlugin {
             playerDataManager.close();
         }
         getLogger().info("EndlessCoinflip disabled.");
+    }
+
+    private void setupMetrics() {
+        Metrics metrics = new Metrics(this, BSTATS_PLUGIN_ID);
+        metrics.addCustomChart(new SimplePie("storage_type", () -> getConfig().getString("storage.type", "FILE").toUpperCase()));
     }
 
     private boolean setupEconomy() {

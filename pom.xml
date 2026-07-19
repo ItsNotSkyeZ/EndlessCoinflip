@@ -6,7 +6,7 @@
 
     <groupId>dev.itsnotskyex</groupId>
     <artifactId>EndlessCoinflip</artifactId>
-    <version>0.0.9</version>
+    <version>0.0.9a</version>
     <packaging>jar</packaging>
 
     <properties>
@@ -28,6 +28,10 @@
         <repository>
             <id>placeholderapi</id>
             <url>https://repo.extendedclip.com/content/repositories/placeholderapi/</url>
+        </repository>
+        <repository>
+            <id>codemc</id>
+            <url>https://repo.codemc.org/repository/maven-public/</url>
         </repository>
     </repositories>
 
@@ -65,6 +69,11 @@
             <artifactId>placeholderapi</artifactId>
             <version>2.12.3</version>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.bstats</groupId>
+            <artifactId>bstats-bukkit</artifactId>
+            <version>3.0.2</version>
         </dependency>
     </dependencies>
 
@@ -113,6 +122,10 @@
                                 <relocation>
                                     <pattern>com.zaxxer.hikari</pattern>
                                     <shadedPattern>dev.itsnotskyex.libs.hikari</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.bstats</pattern>
+                                    <shadedPattern>dev.itsnotskyex.libs.bstats</shadedPattern>
                                 </relocation>
                             </relocations>
                         </configuration>
