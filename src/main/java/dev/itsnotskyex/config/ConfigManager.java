@@ -176,6 +176,30 @@ public class ConfigManager {
         return color(raw);
     }
 
+    public boolean isPvpMatchWinBroadcastEnabled()   { return plugin.getConfig().getBoolean("broadcast.match-win.pvp.enabled", false); }
+    public double  getPvpMatchWinBroadcastMinWager() { return plugin.getConfig().getDouble("broadcast.match-win.pvp.min-wager", 0); }
+
+    public String getPvpMatchWinBroadcastMessage(String... replacements) {
+        String raw = plugin.getConfig().getString("broadcast.match-win.pvp.message");
+        if (raw == null) return null;
+        for (int i = 0; i + 1 < replacements.length; i += 2) {
+            raw = raw.replace("{" + replacements[i] + "}", replacements[i + 1]);
+        }
+        return color(raw);
+    }
+
+    public boolean isBotMatchWinBroadcastEnabled()   { return plugin.getConfig().getBoolean("broadcast.match-win.bot.enabled", false); }
+    public double  getBotMatchWinBroadcastMinWager() { return plugin.getConfig().getDouble("broadcast.match-win.bot.min-wager", 0); }
+
+    public String getBotMatchWinBroadcastMessage(String... replacements) {
+        String raw = plugin.getConfig().getString("broadcast.match-win.bot.message");
+        if (raw == null) return null;
+        for (int i = 0; i + 1 < replacements.length; i += 2) {
+            raw = raw.replace("{" + replacements[i] + "}", replacements[i + 1]);
+        }
+        return color(raw);
+    }
+
     public boolean isUpdateCheckEnabled() { return plugin.getConfig().getBoolean("update-check.enabled", true); }
 
     public String getUpdateAvailableMessage(String latestVersion) {

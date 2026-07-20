@@ -72,6 +72,20 @@ public class CoinflipGUI implements Listener {
         if (message != null) plugin.getServer().broadcastMessage(message);
     }
 
+    private void announcePvpMatchWin(String winnerName, String loserName, double payout) {
+        ConfigManager cm = plugin.getConfigManager();
+        if (!cm.isPvpMatchWinBroadcastEnabled() || payout < cm.getPvpMatchWinBroadcastMinWager()) return;
+        String message = cm.getPvpMatchWinBroadcastMessage("winner", winnerName, "loser", loserName, "amount", CoinflipManager.fmt(payout));
+        if (message != null) plugin.getServer().broadcastMessage(message);
+    }
+
+    private void announceBotMatchWin(String winnerName, double payout) {
+        ConfigManager cm = plugin.getConfigManager();
+        if (!cm.isBotMatchWinBroadcastEnabled() || payout < cm.getBotMatchWinBroadcastMinWager()) return;
+        String message = cm.getBotMatchWinBroadcastMessage("winner", winnerName, "amount", CoinflipManager.fmt(payout));
+        if (message != null) plugin.getServer().broadcastMessage(message);
+    }
+
     private int matchSlotCount() {
         return plugin.getConfigManager().isBotBattlesEnabled() ? 6 : 7;
     }
@@ -234,6 +248,7 @@ public class CoinflipGUI implements Listener {
                             String loserName = joinerWins ? match.hostName : viewer.getName();
                             announceBigWin(winnerName, loserName, result.payout);
                             announceWinStreak(winnerName, result.winnerStreak);
+                            announcePvpMatchWin(winnerName, loserName, result.payout);
                         }
                     }
                     if (resolved) plugin.getSoundManager().play(viewer, thisPlayerWins ? "win" : "lose");
@@ -256,6 +271,7 @@ public class CoinflipGUI implements Listener {
                     if (wins) {
                         announceBigWin(player.getName(), "Coinflip Bot", result.payout);
                         announceWinStreak(player.getName(), result.winnerStreak);
+                        announceBotMatchWin(player.getName(), result.payout);
                     }
                     plugin.getSoundManager().play(player, wins ? "win" : "lose");
                     MatchUIData md = matchUIs.get(inv); if (md != null) md.animating = false;
