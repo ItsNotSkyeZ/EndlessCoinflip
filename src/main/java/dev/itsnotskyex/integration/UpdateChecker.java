@@ -46,17 +46,28 @@ public class UpdateChecker {
             connection.setReadTimeout(5000);
             connection.setRequestProperty("User-Agent", "EndlessCoinflip-UpdateChecker");
 
+            int responseCode = connection.getResponseCode();
+            if (responseCode != 200) {
+                plugin.getLogger().warning("Update check got HTTP " + responseCode + " from SpigotMC — skipping this check.");
+                return;
+            }
+
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8))) {
                 latest = reader.readLine();
             }
         } catch (Exception e) {
-            plugin.getLogger().fine("Update check failed: " + e.getMessage());
+            plugin.getLogger().warning("Update check failed: " + e.getMessage());
             return;
         }
 
-        if (latest == null || latest.isBlank()) return;
+        if (latest == null || latest.isBlank()) {
+            plugin.getLogger().warning("Update check got an empty response from SpigotMC — skipping this check.");
+            return;
+        }
         latest = latest.trim();
-        if (!isNewer(latest, plugin.getDescription().getVersion())) return;
+        String current = plugin.getDescription().getVersion();
+        plugin.getLogger().info("Update check: SpigotMC reports " + latest + ", running " + current + ".");
+        if (!isNewer(latest, current)) return;
 
         latestVersion = latest;
         plugin.getServer().getScheduler().runTask(plugin, () -> notify(plugin.getServer().getConsoleSender()));
