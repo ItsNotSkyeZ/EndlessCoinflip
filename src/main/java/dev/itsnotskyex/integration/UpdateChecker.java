@@ -56,10 +56,37 @@ public class UpdateChecker {
 
         if (latest == null || latest.isBlank()) return;
         latest = latest.trim();
-        if (latest.equals(plugin.getDescription().getVersion())) return;
+        if (!isNewer(latest, plugin.getDescription().getVersion())) return;
 
         latestVersion = latest;
         plugin.getServer().getScheduler().runTask(plugin, () -> notify(plugin.getServer().getConsoleSender()));
+    }
+
+    // Compares dot-separated version numbers numerically rather than as exact strings, so
+    // cosmetic differences like a leading "v" or a missing trailing ".0" (e.g. "v0.1" vs
+    // "0.1.0") aren't mistaken for a real version mismatch.
+    private static boolean isNewer(String latest, String current) {
+        int[] a = parseVersion(latest);
+        int[] b = parseVersion(current);
+        int len = Math.max(a.length, b.length);
+        for (int i = 0; i < len; i++) {
+            int x = i < a.length ? a[i] : 0;
+            int y = i < b.length ? b[i] : 0;
+            if (x != y) return x > y;
+        }
+        return false;
+    }
+
+    private static int[] parseVersion(String version) {
+        String cleaned = version.startsWith("v") || version.startsWith("V") ? version.substring(1) : version;
+        String[] parts = cleaned.split("\\.");
+        int[] nums = new int[parts.length];
+        for (int i = 0; i < parts.length; i++) {
+            int end = 0;
+            while (end < parts[i].length() && Character.isDigit(parts[i].charAt(end))) end++;
+            nums[i] = end > 0 ? Integer.parseInt(parts[i].substring(0, end)) : 0;
+        }
+        return nums;
     }
 
     public void notifyIfAvailable(Player player) {
