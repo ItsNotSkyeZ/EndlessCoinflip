@@ -13,6 +13,10 @@ features:
   bot-battles: true
   join-confirmation: true
   private-matches: true
+  history: true
+  # If false, bot battles still pay out normally but won't affect wins, losses,
+  # wagered/won totals, biggest win/loss, streaks, or the leaderboard.
+  bot-battle-stats: true
 
 # =============================================
 #                  STORAGE
@@ -71,7 +75,7 @@ gui:
 
   bot-battle-name: "&b&lBot Battle"
   bot-battle-lore: "&7Challenge the Coinflip Bot!"
-  bot-skull-name: "&7&lCoinflip Bot"
+  bot-skull-name: "&lCoinflip Bot"
 
   help-name: "&b&lHelp"
 
@@ -164,6 +168,12 @@ broadcast:
     threshold: 1000000
     message: "&6&l⭐ &e{winner} &6just won &f{amount} &6off &f{loser} &6in a coinflip!"
 
+  # Fires every {interval}th win in a row (5, 10, 15...), not just once.
+  win-streak:
+    enabled: false
+    interval: 5
+    message: "&6&l🔥 &e{winner} &6is on a &f{streak} &6win streak!"
+
 # Toggled via features.join-confirmation above.
 join-confirm:
   title: "&0Confirm Join"
@@ -184,7 +194,7 @@ join-confirm:
 # =============================================
 #                LEADERBOARD
 # =============================================
-# sort-by: wins, losses, total-wagered, total-won, biggest-win, biggest-loss
+# sort-by: wins, losses, total-wagered, total-won, biggest-win, biggest-loss, streak
 leaderboard:
   enabled: true
   sort-by: total-won
@@ -235,6 +245,8 @@ leaderboard:
 #  {won}         — player's total amount won
 #  {win}         — biggest single win (messages.yml stats list only)
 #  {loss}        — biggest single loss (messages.yml stats list only)
+#  {streak}      — current win streak (messages.yml stats list only, broadcast.win-streak.message only)
+#  {bestStreak}  — best win streak (messages.yml stats list only, leaderboard.entry-lore only)
 #  {biggestWin}  — biggest single win (leaderboard.entry-lore only)
 #  {biggestLoss} — biggest single loss (leaderboard.entry-lore only)
 #  {color}       — a wool colour's chat colour code
@@ -251,3 +263,14 @@ leaderboard:
 #  {value}       — leaderboard entry's sorted stat (leaderboard.chat-entry only)
 #  {winner}      — winner's name (broadcast.big-win.message only)
 #  {loser}       — loser's name (broadcast.big-win.message only)
+#  {version}     — latest available version (update-check.message only)
+
+# =============================================
+#               UPDATE CHECKER
+# =============================================
+# Checks SpigotMC once on startup for a newer version. If one is found, it's logged to
+# console and shown to any online (or later joining) player with endlesscoinflip.admin.
+# A clickable "[Download]" link to the SpigotMC page is appended automatically.
+update-check:
+  enabled: true
+  message: "&e&l(!) &eA new version of EndlessCoinflip is available: &f{version}"

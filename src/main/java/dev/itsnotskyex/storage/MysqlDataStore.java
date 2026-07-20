@@ -89,6 +89,8 @@ public class MysqlDataStore extends SqlDataStore {
                 "total_won DOUBLE NOT NULL DEFAULT 0," +
                 "biggest_win DOUBLE NOT NULL DEFAULT 0," +
                 "biggest_loss DOUBLE NOT NULL DEFAULT 0," +
+                "current_streak INT NOT NULL DEFAULT 0," +
+                "best_streak INT NOT NULL DEFAULT 0," +
                 "pending_payout DOUBLE NOT NULL DEFAULT 0," +
                 "pending_refund DOUBLE NOT NULL DEFAULT 0," +
                 "receiving_private_invites BOOLEAN NOT NULL DEFAULT TRUE)";
@@ -102,6 +104,16 @@ public class MysqlDataStore extends SqlDataStore {
     @Override
     protected String addPendingRefundColumnSql() {
         return "ALTER TABLE cf_players ADD COLUMN pending_refund DOUBLE NOT NULL DEFAULT 0";
+    }
+
+    @Override
+    protected String addCurrentStreakColumnSql() {
+        return "ALTER TABLE cf_players ADD COLUMN current_streak INT NOT NULL DEFAULT 0";
+    }
+
+    @Override
+    protected String addBestStreakColumnSql() {
+        return "ALTER TABLE cf_players ADD COLUMN best_streak INT NOT NULL DEFAULT 0";
     }
 
     @Override

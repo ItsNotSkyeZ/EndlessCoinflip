@@ -14,6 +14,8 @@ public class PlayerData {
     private double totalWon;
     private double biggestWin;
     private double biggestLoss;
+    private int currentStreak;
+    private int bestStreak;
     private double pendingPayout;
     private double pendingRefund;
     private boolean receivingPrivateInvites = true;
@@ -53,6 +55,10 @@ public class PlayerData {
     public void setBiggestWin(double v)    { this.biggestWin = v; }
     public double getBiggestLoss()         { return biggestLoss; }
     public void setBiggestLoss(double v)   { this.biggestLoss = v; }
+    public int getCurrentStreak()          { return currentStreak; }
+    public void setCurrentStreak(int v)    { this.currentStreak = v; }
+    public int getBestStreak()             { return bestStreak; }
+    public void setBestStreak(int v)       { this.bestStreak = v; }
     public double getPendingPayout()       { return pendingPayout; }
     public void setPendingPayout(double v) { this.pendingPayout = v; }
     public double getPendingRefund()       { return pendingRefund; }

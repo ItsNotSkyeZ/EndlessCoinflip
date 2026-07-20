@@ -50,6 +50,8 @@ public class FileDataStore implements PlayerDataStore {
         data.setTotalWon(yml.getDouble("total-won", 0));
         data.setBiggestWin(yml.getDouble("biggest-win", 0));
         data.setBiggestLoss(yml.getDouble("biggest-loss", 0));
+        data.setCurrentStreak(yml.getInt("current-streak", 0));
+        data.setBestStreak(yml.getInt("best-streak", 0));
         data.setPendingPayout(yml.getDouble("pending-payout", 0));
         data.setPendingRefund(yml.getDouble("pending-refund", 0));
         data.setReceivingPrivateInvites(yml.getBoolean("receiving-private-invites", true));
@@ -88,6 +90,8 @@ public class FileDataStore implements PlayerDataStore {
         yml.set("total-won", data.getTotalWon());
         yml.set("biggest-win", data.getBiggestWin());
         yml.set("biggest-loss", data.getBiggestLoss());
+        yml.set("current-streak", data.getCurrentStreak());
+        yml.set("best-streak", data.getBestStreak());
         yml.set("pending-payout", data.getPendingPayout());
         yml.set("pending-refund", data.getPendingRefund());
         yml.set("receiving-private-invites", data.isReceivingPrivateInvites());
@@ -154,7 +158,8 @@ public class FileDataStore implements PlayerDataStore {
                     yml.getDouble("total-wagered", 0),
                     yml.getDouble("total-won", 0),
                     yml.getDouble("biggest-win", 0),
-                    yml.getDouble("biggest-loss", 0)
+                    yml.getDouble("biggest-loss", 0),
+                    yml.getInt("best-streak", 0)
             ));
         }
         return entries;

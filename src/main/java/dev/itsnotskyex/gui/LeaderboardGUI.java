@@ -140,7 +140,8 @@ public class LeaderboardGUI implements Listener {
                     .replace("{wagered}", CoinflipManager.fmt(entry.totalWagered))
                     .replace("{won}", CoinflipManager.fmt(entry.totalWon))
                     .replace("{biggestWin}", CoinflipManager.fmt(entry.biggestWin))
-                    .replace("{biggestLoss}", CoinflipManager.fmt(entry.biggestLoss))));
+                    .replace("{biggestLoss}", CoinflipManager.fmt(entry.biggestLoss))
+                    .replace("{bestStreak}", String.valueOf(entry.bestStreak))));
         }
         meta.setLore(lore);
         item.setItemMeta(meta);

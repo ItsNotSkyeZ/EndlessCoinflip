@@ -71,6 +71,8 @@ public class SqliteDataStore extends SqlDataStore {
                 "total_won REAL NOT NULL DEFAULT 0," +
                 "biggest_win REAL NOT NULL DEFAULT 0," +
                 "biggest_loss REAL NOT NULL DEFAULT 0," +
+                "current_streak INTEGER NOT NULL DEFAULT 0," +
+                "best_streak INTEGER NOT NULL DEFAULT 0," +
                 "pending_payout REAL NOT NULL DEFAULT 0," +
                 "pending_refund REAL NOT NULL DEFAULT 0," +
                 "receiving_private_invites INTEGER NOT NULL DEFAULT 1)";
@@ -84,6 +86,16 @@ public class SqliteDataStore extends SqlDataStore {
     @Override
     protected String addPendingRefundColumnSql() {
         return "ALTER TABLE cf_players ADD COLUMN pending_refund REAL NOT NULL DEFAULT 0";
+    }
+
+    @Override
+    protected String addCurrentStreakColumnSql() {
+        return "ALTER TABLE cf_players ADD COLUMN current_streak INTEGER NOT NULL DEFAULT 0";
+    }
+
+    @Override
+    protected String addBestStreakColumnSql() {
+        return "ALTER TABLE cf_players ADD COLUMN best_streak INTEGER NOT NULL DEFAULT 0";
     }
 
     @Override

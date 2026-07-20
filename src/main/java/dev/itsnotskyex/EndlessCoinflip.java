@@ -10,6 +10,7 @@ import dev.itsnotskyex.gui.HistoryGUI;
 import dev.itsnotskyex.gui.LeaderboardGUI;
 import dev.itsnotskyex.gui.PlayerConnectionListener;
 import dev.itsnotskyex.integration.CoinflipPlaceholders;
+import dev.itsnotskyex.integration.UpdateChecker;
 import dev.itsnotskyex.manager.CoinflipManager;
 import dev.itsnotskyex.manager.PrivateMatchManager;
 import net.milkbowl.vault.economy.Economy;
@@ -34,6 +35,7 @@ public class EndlessCoinflip extends JavaPlugin {
     private LeaderboardGUI leaderboardGUI;
     private Economy economy;
     private CoinflipPlaceholders placeholders;
+    private UpdateChecker updateChecker;
 
     @Override
     public void onEnable() {
@@ -79,6 +81,9 @@ public class EndlessCoinflip extends JavaPlugin {
 
         setupMetrics();
 
+        updateChecker = new UpdateChecker(this);
+        updateChecker.checkAsync();
+
         getLogger().info("EndlessCoinflip v" + getDescription().getVersion() + " enabled.");
     }
 
@@ -123,4 +128,5 @@ public class EndlessCoinflip extends JavaPlugin {
     public HistoryGUI getHistoryGUI()           { return historyGUI; }
     public LeaderboardGUI getLeaderboardGUI()   { return leaderboardGUI; }
     public Economy getEconomy()                 { return economy; }
+    public UpdateChecker getUpdateChecker()     { return updateChecker; }
 }

@@ -11,8 +11,9 @@ public class LeaderboardEntry {
     public final double totalWon;
     public final double biggestWin;
     public final double biggestLoss;
+    public final int bestStreak;
 
-    public LeaderboardEntry(UUID uuid, int wins, int losses, double totalWagered, double totalWon, double biggestWin, double biggestLoss) {
+    public LeaderboardEntry(UUID uuid, int wins, int losses, double totalWagered, double totalWon, double biggestWin, double biggestLoss, int bestStreak) {
         this.uuid = uuid;
         this.wins = wins;
         this.losses = losses;
@@ -20,6 +21,7 @@ public class LeaderboardEntry {
         this.totalWon = totalWon;
         this.biggestWin = biggestWin;
         this.biggestLoss = biggestLoss;
+        this.bestStreak = bestStreak;
     }
 
     public double valueFor(String sortBy) {
@@ -29,6 +31,7 @@ public class LeaderboardEntry {
             case "total-wagered" -> totalWagered;
             case "biggest-win" -> biggestWin;
             case "biggest-loss" -> biggestLoss;
+            case "streak" -> bestStreak;
             default -> totalWon;
         };
     }

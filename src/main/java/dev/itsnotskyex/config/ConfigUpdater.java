@@ -25,6 +25,11 @@ import java.io.File;
  * Diffs a YAML file on disk against the plugin's bundled default resource and appends
  * any keys missing from the disk copy (new settings introduced by an update, or ones the
  * server owner deleted), without touching existing values, comments, or ordering.
+ *
+ * List-valued settings (e.g. a "stats:" message list) can't be partially diffed line-by-line —
+ * a missing entry inside an existing list looks identical to a customised list. Those are
+ * instead refreshed wholesale, gated by the caller via refreshOutdatedLists (see
+ * ConfigManager's internal per-file version tracking) so it only happens once per bundled change.
  */
 public class ConfigUpdater {
 
@@ -32,30 +37,37 @@ public class ConfigUpdater {
 
     private ConfigUpdater() {}
 
-    public static int update(File file, Plugin plugin, String resourceName, Logger logger) {
+    public static int update(File file, Plugin plugin, String resourceName, boolean refreshOutdatedLists, Logger logger) {
         try (InputStream defaultStream = plugin.getResource(resourceName)) {
             if (defaultStream == null || !file.exists()) return 0;
 
-            List<String> existingLines = Files.readAllLines(file.toPath(), StandardCharsets.UTF_8);
+            List<String> originalLines = Files.readAllLines(file.toPath(), StandardCharsets.UTF_8);
             List<String> defaultLines;
             try (BufferedReader r = new BufferedReader(new InputStreamReader(defaultStream, StandardCharsets.UTF_8))) {
                 defaultLines = r.lines().collect(Collectors.toList());
             }
 
-            MergeResult result = merge(existingLines, defaultLines);
-            if (result.addedCount == 0) return 0;
+            List<String> workingLines = refreshOutdatedLists
+                    ? refreshLists(originalLines, defaultLines, resourceName, logger)
+                    : originalLines;
 
-            String candidate = String.join("\n", result.lines) + "\n";
+            MergeResult result = merge(workingLines, defaultLines);
+            List<String> finalLines = result.lines;
+
+            if (result.addedCount == 0 && finalLines.equals(originalLines)) return 0;
+
+            String candidate = String.join("\n", finalLines) + "\n";
             try {
                 new YamlConfiguration().loadFromString(candidate);
             } catch (Exception e) {
-                logger.warning("Tried to add " + result.addedCount + " missing setting(s) to " + resourceName
-                        + " but the result failed to parse — leaving the file untouched (" + e.getMessage() + ").");
+                logger.warning("Tried to update " + resourceName + " but the result failed to parse — leaving the file untouched (" + e.getMessage() + ").");
                 return 0;
             }
 
             Files.write(file.toPath(), candidate.getBytes(StandardCharsets.UTF_8));
-            logger.info("Added " + result.addedCount + " missing setting(s) to " + resourceName + ".");
+            if (result.addedCount > 0) {
+                logger.info("Added " + result.addedCount + " missing setting(s) to " + resourceName + ".");
+            }
             return result.addedCount;
         } catch (IOException e) {
             logger.warning("Could not check " + resourceName + " for missing settings: " + e.getMessage());
@@ -78,6 +90,7 @@ public class ConfigUpdater {
         int indent;
         String key;
         int headerStart;
+        int lineIndex;
     }
 
     private static List<KeyLine> scanKeyLines(List<String> lines) {
@@ -91,6 +104,7 @@ public class ConfigUpdater {
             KeyLine kl = new KeyLine();
             kl.indent = indentOf(line);
             kl.key = m.group(2);
+            kl.lineIndex = i;
 
             int headerStart = i;
             int j = i - 1;
@@ -112,6 +126,7 @@ public class ConfigUpdater {
     private static class Node {
         String key;
         int headerStart;
+        int lineIndex;
         int end; // exclusive
         List<Node> children = new ArrayList<>();
     }
@@ -128,6 +143,7 @@ public class ConfigUpdater {
             Node node = new Node();
             node.key = cur.key;
             node.headerStart = cur.headerStart;
+            node.lineIndex = cur.lineIndex;
             node.end = (childEnd < seq.size()) ? seq.get(childEnd).headerStart : totalLines;
             node.children = buildTree(seq, childStart, childEnd, totalLines);
             result.add(node);
@@ -149,6 +165,79 @@ public class ConfigUpdater {
         int sum = 0;
         for (Node c : n.children) sum += countLeaves(c);
         return sum;
+    }
+
+    private static List<String> trimBlock(List<String> block) {
+        List<String> copy = new ArrayList<>(block);
+        while (!copy.isEmpty() && copy.get(0).trim().isEmpty()) copy.remove(0);
+        while (!copy.isEmpty() && copy.get(copy.size() - 1).trim().isEmpty()) copy.remove(copy.size() - 1);
+        return copy;
+    }
+
+    // A leaf node (no child keys) whose first non-comment line is a "- " list item, rather
+    // than a plain scalar value on the "key:" line itself.
+    private static boolean isListNode(Node n, List<String> lines) {
+        if (!n.children.isEmpty()) return false;
+        for (int j = n.lineIndex + 1; j < n.end && j < lines.size(); j++) {
+            String line = lines.get(j);
+            if (isCommentOrBlank(line)) continue;
+            String trimmed = line.trim();
+            return trimmed.equals("-") || trimmed.startsWith("- ");
+        }
+        return false;
+    }
+
+    // Overwrites list-valued settings that still look like a list default with the bundled
+    // default. The caller (ConfigManager) decides whether this runs at all, based on its own
+    // per-file version tracking, so this only touches lists once per bundled change.
+    // Individually customised lists (that no longer look like a list, or whose key is missing
+    // from the bundled defaults) are left untouched.
+    private static List<String> refreshLists(List<String> existingLines, List<String> defaultLines, String resourceName, Logger logger) {
+        List<KeyLine> existingSeq = scanKeyLines(existingLines);
+        List<KeyLine> defaultSeq = scanKeyLines(defaultLines);
+        List<Node> existingTree = buildTree(existingSeq, 0, existingSeq.size(), existingLines.size());
+        List<Node> defaultTree = buildTree(defaultSeq, 0, defaultSeq.size(), defaultLines.size());
+
+        Map<String, Node> existingByPath = new HashMap<>();
+        flatten(existingTree, "", existingByPath);
+        Map<String, Node> defaultByPath = new HashMap<>();
+        flatten(defaultTree, "", defaultByPath);
+
+        List<int[]> ranges = new ArrayList<>();
+        List<List<String>> blocks = new ArrayList<>();
+
+        for (Map.Entry<String, Node> e : defaultByPath.entrySet()) {
+            Node defaultNode = e.getValue();
+            Node existingNode = existingByPath.get(e.getKey());
+            if (existingNode == null) continue; // handled by the regular missing-key merge
+
+            if (!isListNode(defaultNode, defaultLines) || !isListNode(existingNode, existingLines)) continue;
+
+            List<String> defaultBlock = trimBlock(defaultLines.subList(defaultNode.headerStart, defaultNode.end));
+            List<String> existingBlock = trimBlock(existingLines.subList(existingNode.headerStart, existingNode.end));
+            if (defaultBlock.equals(existingBlock)) continue;
+
+            ranges.add(new int[]{existingNode.headerStart, existingNode.end});
+            blocks.add(defaultBlock);
+        }
+
+        if (ranges.isEmpty()) return existingLines;
+
+        List<Integer> order = new ArrayList<>();
+        for (int i = 0; i < ranges.size(); i++) order.add(i);
+        order.sort((a, b) -> Integer.compare(ranges.get(b)[0], ranges.get(a)[0]));
+
+        List<String> output = new ArrayList<>(existingLines);
+        for (int idx : order) {
+            int start = ranges.get(idx)[0];
+            int end = ranges.get(idx)[1];
+            output.subList(start, end).clear();
+            output.addAll(start, blocks.get(idx));
+        }
+
+        logger.info("Refreshed " + ranges.size() + " list setting(s) in " + resourceName
+                + " to match the updated defaults (any customisations to those specific lists were overwritten).");
+        return output;
     }
 
     private static class MergeResult {
@@ -190,9 +279,7 @@ public class ConfigUpdater {
             String path = parentPath.isEmpty() ? dn.key : parentPath + "." + dn.key;
             Node existingNode = existingByPath.get(path);
             if (existingNode == null) {
-                List<String> block = new ArrayList<>(defaultLines.subList(dn.headerStart, dn.end));
-                while (!block.isEmpty() && block.get(0).trim().isEmpty()) block.remove(0);
-                while (!block.isEmpty() && block.get(block.size() - 1).trim().isEmpty()) block.remove(block.size() - 1);
+                List<String> block = trimBlock(defaultLines.subList(dn.headerStart, dn.end));
                 if (block.isEmpty()) continue;
 
                 boolean topLevel = parentPath.isEmpty();

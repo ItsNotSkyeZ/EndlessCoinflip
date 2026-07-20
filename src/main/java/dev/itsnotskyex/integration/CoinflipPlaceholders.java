@@ -13,7 +13,7 @@ import java.util.List;
 public class CoinflipPlaceholders extends PlaceholderExpansion {
 
     private static final List<String> TOP_STATS = List.of(
-            "total_wagered", "total_won", "biggest_win", "biggest_loss", "wins", "losses");
+            "total_wagered", "total_won", "biggest_win", "biggest_loss", "wins", "losses", "streak");
     private static final String NO_DATA = "Awaiting data";
 
     private final EndlessCoinflip plugin;
@@ -61,6 +61,8 @@ public class CoinflipPlaceholders extends PlaceholderExpansion {
             case "total_won" -> CoinflipManager.fmt(data.getTotalWon());
             case "biggest_win" -> CoinflipManager.fmt(data.getBiggestWin());
             case "biggest_loss" -> CoinflipManager.fmt(data.getBiggestLoss());
+            case "streak" -> String.valueOf(data.getCurrentStreak());
+            case "best_streak" -> String.valueOf(data.getBestStreak());
             case "ratio" -> ratio(data.getWins(), data.getLosses());
             case "rank" -> rank(player);
             default -> null;
@@ -97,6 +99,7 @@ public class CoinflipPlaceholders extends PlaceholderExpansion {
                 case "total_won" -> CoinflipManager.fmt(entry.totalWon);
                 case "biggest_win" -> CoinflipManager.fmt(entry.biggestWin);
                 case "biggest_loss" -> CoinflipManager.fmt(entry.biggestLoss);
+                case "streak" -> String.valueOf(entry.bestStreak);
                 case "ratio" -> ratio(entry.wins, entry.losses);
                 default -> null;
             };

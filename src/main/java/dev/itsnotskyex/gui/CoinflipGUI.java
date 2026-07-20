@@ -64,6 +64,14 @@ public class CoinflipGUI implements Listener {
         if (message != null) plugin.getServer().broadcastMessage(message);
     }
 
+    private void announceWinStreak(String winnerName, int streak) {
+        ConfigManager cm = plugin.getConfigManager();
+        int interval = cm.getWinStreakBroadcastInterval();
+        if (!cm.isWinStreakBroadcastEnabled() || interval <= 0 || streak <= 0 || streak % interval != 0) return;
+        String message = cm.getWinStreakBroadcastMessage("winner", winnerName, "streak", String.valueOf(streak));
+        if (message != null) plugin.getServer().broadcastMessage(message);
+    }
+
     private int matchSlotCount() {
         return plugin.getConfigManager().isBotBattlesEnabled() ? 6 : 7;
     }
@@ -190,7 +198,7 @@ public class CoinflipGUI implements Listener {
         Inventory inv = Bukkit.createInventory(null, 9, c(cfg("match-title", "wager", CoinflipManager.fmt(wager))));
         fill(inv, Material.BLACK_STAINED_GLASS_PANE);
 
-        inv.setItem(0, makeItem(Material.SKELETON_SKULL, cfg("bot-skull-name")));
+        inv.setItem(0, makeItem(Material.SKELETON_SKULL, botColor.chatColor + cfg("bot-skull-name")));
         inv.setItem(1, silentPane(botColor.paneMaterial));
         inv.setItem(7, silentPane(playerColor.paneMaterial));
         inv.setItem(8, makeSkull(player.getName(), player.getUniqueId(), playerColor.chatColor, ratio(player.getUniqueId())));
@@ -225,6 +233,7 @@ public class CoinflipGUI implements Listener {
 
                             String loserName = joinerWins ? match.hostName : viewer.getName();
                             announceBigWin(winnerName, loserName, result.payout);
+                            announceWinStreak(winnerName, result.winnerStreak);
                         }
                     }
                     if (resolved) plugin.getSoundManager().play(viewer, thisPlayerWins ? "win" : "lose");
@@ -244,7 +253,10 @@ public class CoinflipGUI implements Listener {
                     plugin.getCoinflipManager().unregisterBotMatch(player.getUniqueId());
                     CoinflipManager.ResolveResult result = plugin.getCoinflipManager().resolveBotMatch(player, wager, wins);
                     player.sendMessage(cfg(wins ? "you-won" : "you-lost", "opponent", "Coinflip Bot", "wager", CoinflipManager.fmt(wager)));
-                    if (wins) announceBigWin(player.getName(), "Coinflip Bot", result.payout);
+                    if (wins) {
+                        announceBigWin(player.getName(), "Coinflip Bot", result.payout);
+                        announceWinStreak(player.getName(), result.winnerStreak);
+                    }
                     plugin.getSoundManager().play(player, wins ? "win" : "lose");
                     MatchUIData md = matchUIs.get(inv); if (md != null) md.animating = false;
                     plugin.getServer().getScheduler().runTaskLater(plugin, () -> { if (guiTypes.containsKey(inv)) player.closeInventory(); }, 60L);
@@ -518,7 +530,9 @@ public class CoinflipGUI implements Listener {
         List<String> lore = new ArrayList<>(List.of("", cfg("help-cmd-main"), "", cfg("help-cmd-wager")));
         if (plugin.getConfigManager().isPrivateMatchesEnabled()) lore.addAll(List.of("", cfg("help-cmd-private"), "", cfg("help-cmd-toggle")));
         if (plugin.getConfigManager().isBotBattlesEnabled()) lore.addAll(List.of("", cfg("help-cmd-bot")));
-        lore.addAll(List.of("", cfg("help-cmd-cancel"), "", cfg("help-cmd-stats"), "", cfg("help-cmd-history"), "", cfg("help-cmd-top")));
+        lore.addAll(List.of("", cfg("help-cmd-cancel"), "", cfg("help-cmd-stats")));
+        if (plugin.getConfigManager().isHistoryEnabled()) lore.addAll(List.of("", cfg("help-cmd-history")));
+        lore.addAll(List.of("", cfg("help-cmd-top")));
         meta.setLore(lore);
         item.setItemMeta(meta);
         return item;

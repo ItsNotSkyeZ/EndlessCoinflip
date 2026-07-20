@@ -6,7 +6,7 @@
 **PvP Coinflip with Bot Battles & Stats**
 
 [![Spigot](https://img.shields.io/badge/Spigot-1.21+-orange)](https://www.spigotmc.org/resources/endlesscoinflip-pvp-coinflip-with-bot-battles-stats-1-21.137052)
-[![Version](https://img.shields.io/badge/Version-0.0.9-blue)](https://github.com/ItsNotSkyeZ/EndlessCoinflip/releases)
+[![Version](https://img.shields.io/badge/Version-0.1.0-blue)](https://github.com/ItsNotSkyeZ/EndlessCoinflip/releases)
 [![Discord](https://img.shields.io/discord/1527399059428610288?label=Discord&logo=discord&color=5865F2)](https://discord.gg/c5q8rBZQ5A)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
@@ -24,10 +24,10 @@ EndlessCoinflip is a clean, feature-rich coinflip plugin built for Paper or Spig
 - **Private Matches** — Challenge a specific player directly with `/cf <player> <wager>`
 - **Leaderboards** — Top players by wins, losses, wagered, biggest win and more via `/cf top`
 - **Match History** — View your recent results in a paginated GUI
-- **Player Stats** — Track wins, losses, total wagered, total won, biggest win and biggest loss
+- **Player Stats** — Track wins, losses, total wagered, total won, biggest win, biggest loss, and current/best win streak
 - **Server Tax** — Take a configurable percentage cut from the pot before paying out the winner, with an optional permission to exempt specific players
-- **PlaceholderAPI Support** — Expose wins, losses, wagered, won, biggest win/loss, ratio and leaderboard rank as placeholders
-- **Big Win Broadcasts** — Server-wide announcements when a payout meets a configurable threshold
+- **PlaceholderAPI Support** — Expose wins, losses, wagered, won, biggest win/loss, win streak, ratio and leaderboard rank as placeholders
+- **Big Win & Win Streak Broadcasts** — Server-wide announcements when a payout meets a configurable threshold, or a player hits a win streak milestone
 - **Per-Permission Wager Limits** — Give VIP/donor ranks a higher or lower wager limit than everyone else
 - **Database Support** — Choose between FILE, SQLite or MySQL with automatic migration and backups
 - **Cooldowns & Match Expiry** — Prevent spam and auto-cancel unjoined matches after a set time
@@ -115,6 +115,8 @@ If PlaceholderAPI is installed, EndlessCoinflip registers these placeholders aut
 | `%coinflip_total_won%` | Player's total amount won |
 | `%coinflip_biggest_win%` | Player's biggest single win |
 | `%coinflip_biggest_loss%` | Player's biggest single loss |
+| `%coinflip_streak%` | Player's current win streak |
+| `%coinflip_best_streak%` | Player's best win streak |
 | `%coinflip_ratio%` | Player's win:loss ratio |
 | `%coinflip_rank%` | Player's leaderboard position, refreshed every `placeholders.rank-refresh-seconds` |
 
@@ -122,7 +124,7 @@ These only resolve for online players. Test them with `/papi parse <player> <pla
 
 For holograms and scoreboards showing the overall leaderboard (not tied to a specific viewer), use the `top_<sort-stat>_<position>_<field>` placeholders, e.g. `%coinflip_top_wins_1_name%`, `%coinflip_top_total_won_1_total_won%`, `%coinflip_top_biggest_loss_3_name%`. `<field>` defaults to `name` if omitted (e.g. `%coinflip_top_wins_1%`).
 
-Each stat (`wins`, `losses`, `total_wagered`, `total_won`, `biggest_win`, `biggest_loss`) is its own independently-ranked leaderboard — a "top by losses" hologram and a "top by wins" hologram can run side by side without affecting each other or `/cf top`. `<field>` can be any of `name`, `wins`, `losses`, `total_wagered`, `total_won`, `biggest_win`, `biggest_loss`, `ratio`. All rankings refresh together every `placeholders.rank-refresh-seconds`.
+Each stat (`wins`, `losses`, `total_wagered`, `total_won`, `biggest_win`, `biggest_loss`, `streak`) is its own independently-ranked leaderboard — a "top by losses" hologram and a "top by wins" hologram can run side by side without affecting each other or `/cf top`. `<field>` can be any of `name`, `wins`, `losses`, `total_wagered`, `total_won`, `biggest_win`, `biggest_loss`, `streak`, `ratio`. All rankings refresh together every `placeholders.rank-refresh-seconds`.
 
 ---
 
@@ -137,8 +139,6 @@ The built jar will be in `target/`.
 ---
 
 ## Roadmap
-- [ ] Custom Economy — built-in economy option for servers without Vault
-- [ ] Win Streak Tracking — track and display current and best win streaks
 - [ ] Spectating — allow players to watch an ongoing match in real time
 
 ---

@@ -6,7 +6,7 @@
 
     <groupId>dev.itsnotskyex</groupId>
     <artifactId>EndlessCoinflip</artifactId>
-    <version>0.0.9a</version>
+    <version>0.1.0</version>
     <packaging>jar</packaging>
 
     <properties>

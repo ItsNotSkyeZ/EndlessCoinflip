@@ -27,6 +27,8 @@ public abstract class SqlDataStore implements PlayerDataStore {
     protected abstract String createHistoryTableSql();
     protected abstract String addReceivingPrivateInvitesColumnSql();
     protected abstract String addPendingRefundColumnSql();
+    protected abstract String addCurrentStreakColumnSql();
+    protected abstract String addBestStreakColumnSql();
 
     protected abstract Executor ioExecutor();
 
@@ -88,6 +90,14 @@ public abstract class SqlDataStore implements PlayerDataStore {
             st.executeUpdate(addPendingRefundColumnSql());
         } catch (SQLException ignored) {
         }
+        try (Statement st = conn.createStatement()) {
+            st.executeUpdate(addCurrentStreakColumnSql());
+        } catch (SQLException ignored) {
+        }
+        try (Statement st = conn.createStatement()) {
+            st.executeUpdate(addBestStreakColumnSql());
+        } catch (SQLException ignored) {
+        }
     }
 
     @Override
@@ -102,7 +112,7 @@ public abstract class SqlDataStore implements PlayerDataStore {
 
         try {
             try (PreparedStatement ps = conn.prepareStatement(
-                    "SELECT wins, losses, total_wagered, total_won, biggest_win, biggest_loss, pending_payout, pending_refund, receiving_private_invites FROM cf_players WHERE uuid = ?")) {
+                    "SELECT wins, losses, total_wagered, total_won, biggest_win, biggest_loss, current_streak, best_streak, pending_payout, pending_refund, receiving_private_invites FROM cf_players WHERE uuid = ?")) {
                 ps.setString(1, uuid.toString());
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) {
@@ -112,6 +122,8 @@ public abstract class SqlDataStore implements PlayerDataStore {
                         data.setTotalWon(rs.getDouble("total_won"));
                         data.setBiggestWin(rs.getDouble("biggest_win"));
                         data.setBiggestLoss(rs.getDouble("biggest_loss"));
+                        data.setCurrentStreak(rs.getInt("current_streak"));
+                        data.setBestStreak(rs.getInt("best_streak"));
                         data.setPendingPayout(rs.getDouble("pending_payout"));
                         data.setPendingRefund(rs.getDouble("pending_refund"));
                         data.setReceivingPrivateInvites(rs.getBoolean("receiving_private_invites"));
@@ -169,22 +181,24 @@ public abstract class SqlDataStore implements PlayerDataStore {
 
             if (exists) {
                 try (PreparedStatement ps = conn.prepareStatement(
-                        "UPDATE cf_players SET wins=?, losses=?, total_wagered=?, total_won=?, biggest_win=?, biggest_loss=?, pending_payout=?, pending_refund=?, receiving_private_invites=? WHERE uuid=?")) {
+                        "UPDATE cf_players SET wins=?, losses=?, total_wagered=?, total_won=?, biggest_win=?, biggest_loss=?, current_streak=?, best_streak=?, pending_payout=?, pending_refund=?, receiving_private_invites=? WHERE uuid=?")) {
                     ps.setInt(1, data.getWins());
                     ps.setInt(2, data.getLosses());
                     ps.setDouble(3, data.getTotalWagered());
                     ps.setDouble(4, data.getTotalWon());
                     ps.setDouble(5, data.getBiggestWin());
                     ps.setDouble(6, data.getBiggestLoss());
-                    ps.setDouble(7, data.getPendingPayout());
-                    ps.setDouble(8, data.getPendingRefund());
-                    ps.setBoolean(9, data.isReceivingPrivateInvites());
-                    ps.setString(10, data.getUuid().toString());
+                    ps.setInt(7, data.getCurrentStreak());
+                    ps.setInt(8, data.getBestStreak());
+                    ps.setDouble(9, data.getPendingPayout());
+                    ps.setDouble(10, data.getPendingRefund());
+                    ps.setBoolean(11, data.isReceivingPrivateInvites());
+                    ps.setString(12, data.getUuid().toString());
                     ps.executeUpdate();
                 }
             } else {
                 try (PreparedStatement ps = conn.prepareStatement(
-                        "INSERT INTO cf_players (uuid, wins, losses, total_wagered, total_won, biggest_win, biggest_loss, pending_payout, pending_refund, receiving_private_invites) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
+                        "INSERT INTO cf_players (uuid, wins, losses, total_wagered, total_won, biggest_win, biggest_loss, current_streak, best_streak, pending_payout, pending_refund, receiving_private_invites) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
                     ps.setString(1, data.getUuid().toString());
                     ps.setInt(2, data.getWins());
                     ps.setInt(3, data.getLosses());
@@ -192,9 +206,11 @@ public abstract class SqlDataStore implements PlayerDataStore {
                     ps.setDouble(5, data.getTotalWon());
                     ps.setDouble(6, data.getBiggestWin());
                     ps.setDouble(7, data.getBiggestLoss());
-                    ps.setDouble(8, data.getPendingPayout());
-                    ps.setDouble(9, data.getPendingRefund());
-                    ps.setBoolean(10, data.isReceivingPrivateInvites());
+                    ps.setInt(8, data.getCurrentStreak());
+                    ps.setInt(9, data.getBestStreak());
+                    ps.setDouble(10, data.getPendingPayout());
+                    ps.setDouble(11, data.getPendingRefund());
+                    ps.setBoolean(12, data.isReceivingPrivateInvites());
                     ps.executeUpdate();
                 }
             }
@@ -254,10 +270,11 @@ public abstract class SqlDataStore implements PlayerDataStore {
                 case "total-wagered" -> "total_wagered";
                 case "biggest-win" -> "biggest_win";
                 case "biggest-loss" -> "biggest_loss";
+                case "streak" -> "best_streak";
                 default -> "total_won";
             };
 
-            String sql = "SELECT uuid, wins, losses, total_wagered, total_won, biggest_win, biggest_loss FROM cf_players ORDER BY " + column + " DESC LIMIT ? OFFSET ?";
+            String sql = "SELECT uuid, wins, losses, total_wagered, total_won, biggest_win, biggest_loss, best_streak FROM cf_players ORDER BY " + column + " DESC LIMIT ? OFFSET ?";
             try (PreparedStatement ps = conn.prepareStatement(sql)) {
                 ps.setInt(1, limit);
                 ps.setInt(2, offset);
@@ -270,7 +287,8 @@ public abstract class SqlDataStore implements PlayerDataStore {
                                 rs.getDouble("total_wagered"),
                                 rs.getDouble("total_won"),
                                 rs.getDouble("biggest_win"),
-                                rs.getDouble("biggest_loss")
+                                rs.getDouble("biggest_loss"),
+                                rs.getInt("best_streak")
                         ));
                     }
                 }

@@ -8,6 +8,9 @@
 #   just chat messages.
 # =============================================
 
+# =============================================
+#                  GENERAL
+# =============================================
 no-permission: "&c&l(!) &cYou don't have permission to do that."
 player-only: "&c&l(!) &cOnly players can use this command."
 invalid-amount: "&c&l(!) &cInvalid amount. Please enter a number."
@@ -16,6 +19,9 @@ wager-too-low: "&c&l(!) &cThe minimum wager is &7{min}&c."
 wager-too-high: "&c&l(!) &cThe maximum wager is &7{max}&c."
 feature-disabled: "&c&l(!) &cThat feature is currently disabled."
 
+# =============================================
+#                  MATCHES
+# =============================================
 insufficient-funds-create: "&c&l(!) &cYou don't have enough money to create that match."
 insufficient-funds-join: "&c&l(!) &cYou don't have enough money to join that match."
 insufficient-funds-need: "&c&l(!) &cYou need &7{wager} &cto place that wager."
@@ -32,6 +38,9 @@ color-taken: "&c&l(!) &cYour opponent already chose that colour. Pick another."
 you-won: "&a&l[!] &aYou won &f{wager} &aagainst &f{opponent}&a!"
 you-lost: "&c&l[!] &cYou lost &f{wager} &cto &f{opponent}&c."
 
+# =============================================
+#               PRIVATE MATCHES
+# =============================================
 cannot-invite-self: "&c&l(!) &cYou can't invite yourself to a match."
 player-not-found: "&c&l(!) &cPlayer &7{player} &cis not online."
 invite-already-pending: "&c&l(!) &cYou already have an invite pending. Cancel it first with &7/cf cancel&c."
@@ -57,16 +66,28 @@ target-not-accepting-invites: "&c&l(!) &f{target} &cisn't accepting private matc
 private-invites-enabled: "&a&l(!) &aYou will now receive private match invites again."
 private-invites-disabled: "&a&l(!) &aYou will no longer receive private match invites."
 
+# =============================================
+#                 BOT BATTLES
+# =============================================
 bot-battle-prompt: "&a&l(!) &aEnter a wager amount in chat, or type &7cancel&a."
 bot-battle-cancelled: "&a&l(!) &aBot battle cancelled."
 bot-battle-invalid-amount: "&c&l(!) &cInvalid amount entered."
 
+# =============================================
+#              OFFLINE PAYOUTS
+# =============================================
 pending-payout: "&a&l[!] &aYou received a pending coinflip payout of &f{amount}&a!"
 refunded-on-restart: "&a&l[!] &aYour wager of &f{amount}&a was refunded because the server restarted while your coinflip was pending."
 
+# =============================================
+#                   ADMIN
+# =============================================
 reload-success: "&a&l(!) &aConfig reloaded successfully."
 reload-failed: "&c&l(!) &cConfig failed to reload — check console for a YAML error. Your previous settings are still active."
 
+# =============================================
+#                    HELP
+# =============================================
 help-cmd-main: "&b/cf &f— Open the coinflip menu"
 help-cmd-wager: "&b/cf &f<wager|all|half> &f— Create a match"
 help-cmd-bot: "&b/cf bot &f<wager> &f— Start a bot battle instantly"
@@ -96,6 +117,9 @@ help:
   - "  &b/cf reload &8— &7Reload config (admin)"
   - "&0&m                                        "
 
+# =============================================
+#                   STATS
+# =============================================
 stats:
   - "&0&m                                        "
   - "  &b&lYour Coinflip Stats"
@@ -106,4 +130,6 @@ stats:
   - "  &7Total Won&8: &f{won}"
   - "  &7Biggest Win&8: &f{win}"
   - "  &7Biggest Loss&8: &f{loss}"
+  - "  &7Current Streak&8: &f{streak}"
+  - "  &7Best Streak&8: &f{bestStreak}"
   - "&0&m                                        "

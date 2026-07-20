@@ -114,12 +114,19 @@ public class CoinflipManager {
         public final boolean success;
         public final double payout; // winner's total payout after server tax, 0 if there is no winner payout to report
         public final double taxAmount;
+        public final int winnerStreak;
 
-        public ResolveResult(boolean success, double payout, double taxAmount) {
-            this.success   = success;
-            this.payout    = payout;
-            this.taxAmount = taxAmount;
+        public ResolveResult(boolean success, double payout, double taxAmount, int winnerStreak) {
+            this.success      = success;
+            this.payout       = payout;
+            this.taxAmount    = taxAmount;
+            this.winnerStreak = winnerStreak;
         }
+    }
+
+    private void applyWinStreak(PlayerData data) {
+        data.setCurrentStreak(data.getCurrentStreak() + 1);
+        if (data.getCurrentStreak() > data.getBestStreak()) data.setBestStreak(data.getCurrentStreak());
     }
 
     private double[] applyTax(double total, Player winner) {
@@ -134,7 +141,7 @@ public class CoinflipManager {
     public ResolveResult resolveMatch(Player joiner, CoinflipMatch match, boolean joinerWon) {
         if (!plugin.getEconomy().has(joiner, match.wager)) {
             plugin.getEconomy().depositPlayer(plugin.getServer().getOfflinePlayer(match.hostUuid), match.wager);
-            return new ResolveResult(false, 0, 0);
+            return new ResolveResult(false, 0, 0, 0);
         }
         plugin.getEconomy().withdrawPlayer(joiner, match.wager);
 
@@ -147,11 +154,14 @@ public class CoinflipManager {
         PlayerData joinerData = plugin.getPlayerDataManager().get(joiner.getUniqueId());
         joinerData.setTotalWagered(joinerData.getTotalWagered() + match.wager);
 
+        int winnerStreak;
         if (joinerWon) {
             plugin.getEconomy().depositPlayer(joiner, payout);
             joinerData.setWins(joinerData.getWins() + 1);
             joinerData.setTotalWon(joinerData.getTotalWon() + payout);
             if (payout > joinerData.getBiggestWin()) joinerData.setBiggestWin(payout);
+            applyWinStreak(joinerData);
+            winnerStreak = joinerData.getCurrentStreak();
             joinerData.addHistoryEntry(new MatchHistoryEntry(match.hostName, match.wager, true, false, now), maxHistory);
             plugin.getPlayerDataManager().save(joinerData);
 
@@ -159,11 +169,13 @@ public class CoinflipManager {
             hd.setLosses(hd.getLosses() + 1);
             hd.setTotalWagered(hd.getTotalWagered() + match.wager);
             if (match.wager > hd.getBiggestLoss()) hd.setBiggestLoss(match.wager);
+            hd.setCurrentStreak(0);
             hd.addHistoryEntry(new MatchHistoryEntry(joiner.getName(), match.wager, false, false, now), maxHistory);
             plugin.getPlayerDataManager().save(hd);
         } else {
             joinerData.setLosses(joinerData.getLosses() + 1);
             if (match.wager > joinerData.getBiggestLoss()) joinerData.setBiggestLoss(match.wager);
+            joinerData.setCurrentStreak(0);
             joinerData.addHistoryEntry(new MatchHistoryEntry(match.hostName, match.wager, false, false, now), maxHistory);
             plugin.getPlayerDataManager().save(joinerData);
 
@@ -172,6 +184,8 @@ public class CoinflipManager {
             hd.setTotalWagered(hd.getTotalWagered() + match.wager);
             hd.setTotalWon(hd.getTotalWon() + payout);
             if (payout > hd.getBiggestWin()) hd.setBiggestWin(payout);
+            applyWinStreak(hd);
+            winnerStreak = hd.getCurrentStreak();
             if (onlineHost != null) {
                 plugin.getEconomy().depositPlayer(onlineHost, payout);
             } else {
@@ -180,25 +194,32 @@ public class CoinflipManager {
             hd.addHistoryEntry(new MatchHistoryEntry(joiner.getName(), match.wager, true, false, now), maxHistory);
             plugin.getPlayerDataManager().save(hd);
         }
-        return new ResolveResult(true, payout, taxAmount);
+        return new ResolveResult(true, payout, taxAmount, winnerStreak);
     }
 
     public ResolveResult resolveBotMatch(Player player, double wager, boolean playerWon) {
         PlayerData data = plugin.getPlayerDataManager().get(player.getUniqueId());
-        data.setTotalWagered(data.getTotalWagered() + wager);
+        boolean statsEnabled = plugin.getConfigManager().isBotBattleStatsEnabled();
+        if (statsEnabled) data.setTotalWagered(data.getTotalWagered() + wager);
         ResolveResult result;
         if (playerWon) {
             double[] taxed = applyTax(wager * 2, player);
             double payout = taxed[0];
             plugin.getEconomy().depositPlayer(player, payout);
-            data.setWins(data.getWins() + 1);
-            data.setTotalWon(data.getTotalWon() + payout);
-            if (payout > data.getBiggestWin()) data.setBiggestWin(payout);
-            result = new ResolveResult(true, payout, taxed[1]);
+            if (statsEnabled) {
+                data.setWins(data.getWins() + 1);
+                data.setTotalWon(data.getTotalWon() + payout);
+                if (payout > data.getBiggestWin()) data.setBiggestWin(payout);
+                applyWinStreak(data);
+            }
+            result = new ResolveResult(true, payout, taxed[1], statsEnabled ? data.getCurrentStreak() : 0);
         } else {
-            data.setLosses(data.getLosses() + 1);
-            if (wager > data.getBiggestLoss()) data.setBiggestLoss(wager);
-            result = new ResolveResult(true, 0, 0);
+            if (statsEnabled) {
+                data.setLosses(data.getLosses() + 1);
+                if (wager > data.getBiggestLoss()) data.setBiggestLoss(wager);
+                data.setCurrentStreak(0);
+            }
+            result = new ResolveResult(true, 0, 0, 0);
         }
         data.addHistoryEntry(new MatchHistoryEntry("Coinflip Bot", wager, playerWon, true, System.currentTimeMillis()), plugin.getConfigManager().getMaxHistoryStored());
         plugin.getPlayerDataManager().save(data);

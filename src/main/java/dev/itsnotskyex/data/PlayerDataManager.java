@@ -27,7 +27,7 @@ public class PlayerDataManager {
     private final Map<UUID, PlayerData> cache = new ConcurrentHashMap<>();
     private final PlayerDataStore store;
     private static final List<String> LEADERBOARD_STATS = List.of(
-            "wins", "losses", "total-wagered", "total-won", "biggest-win", "biggest-loss");
+            "wins", "losses", "total-wagered", "total-won", "biggest-win", "biggest-loss", "streak");
 
     private volatile Map<UUID, Integer> rankCache = Map.of();
     private volatile Map<String, List<LeaderboardEntry>> topEntriesByStat = Map.of();

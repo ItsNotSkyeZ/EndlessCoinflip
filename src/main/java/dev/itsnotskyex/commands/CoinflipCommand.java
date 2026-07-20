@@ -132,13 +132,16 @@ public class CoinflipCommand implements CommandExecutor, TabCompleter {
                         .replace("{wagered}", CoinflipManager.fmt(data.getTotalWagered()))
                         .replace("{won}",     CoinflipManager.fmt(data.getTotalWon()))
                         .replace("{win}",     CoinflipManager.fmt(data.getBiggestWin()))
-                        .replace("{loss}",    CoinflipManager.fmt(data.getBiggestLoss()));
+                        .replace("{loss}",    CoinflipManager.fmt(data.getBiggestLoss()))
+                        .replace("{streak}",     String.valueOf(data.getCurrentStreak()))
+                        .replace("{bestStreak}", String.valueOf(data.getBestStreak()));
                 player.sendMessage(plugin.getConfigManager().color(line));
             }
             return true;
         }
 
         if (sub.equals("history")) {
+            if (!plugin.getConfigManager().isHistoryEnabled()) { msg(player, "feature-disabled"); return true; }
             plugin.getHistoryGUI().open(player, 0);
             return true;
         }
@@ -262,7 +265,7 @@ public class CoinflipCommand implements CommandExecutor, TabCompleter {
             for (LeaderboardEntry entry : entries) {
                 OfflinePlayer offline = Bukkit.getOfflinePlayer(entry.uuid);
                 String name = offline.getName() != null ? offline.getName() : entry.uuid.toString().substring(0, 8);
-                String value = sortBy.equals("wins") || sortBy.equals("losses")
+                String value = sortBy.equals("wins") || sortBy.equals("losses") || sortBy.equals("streak")
                         ? String.valueOf((long) entry.valueFor(sortBy))
                         : CoinflipManager.fmt(entry.valueFor(sortBy));
                 sender.sendMessage(plugin.getConfigManager().color(template
@@ -282,9 +285,11 @@ public class CoinflipCommand implements CommandExecutor, TabCompleter {
         List<String> wagers = List.of("all", "half", "100", "1000", "10k", "200k", "1m", "10m", "100m");
         boolean botEnabled = plugin.getConfigManager().isBotBattlesEnabled();
         boolean privateEnabled = plugin.getConfigManager().isPrivateMatchesEnabled();
+        boolean historyEnabled = plugin.getConfigManager().isHistoryEnabled();
 
         if (args.length == 1) {
-            List<String> options = new ArrayList<>(List.of("help", "cancel", "stats", "history", "top", "reload"));
+            List<String> options = new ArrayList<>(List.of("help", "cancel", "stats", "top", "reload"));
+            if (historyEnabled) options.add("history");
             if (botEnabled) options.add("bot");
             if (privateEnabled) {
                 options.add("accept");

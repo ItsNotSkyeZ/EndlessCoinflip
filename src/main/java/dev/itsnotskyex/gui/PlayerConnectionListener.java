@@ -42,6 +42,8 @@ public class PlayerConnectionListener implements Listener {
             plugin.getPlayerDataManager().save(data);
             player.sendMessage(plugin.getConfigManager().getMessage("refunded-on-restart", "amount", CoinflipManager.fmt(amount)));
         }
+
+        plugin.getUpdateChecker().notifyIfAvailable(player);
     }
 
     @EventHandler
