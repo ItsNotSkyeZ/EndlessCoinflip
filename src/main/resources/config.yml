@@ -166,6 +166,9 @@ broadcast:
   big-win:
     enabled: false
     threshold: 1000000
+    # Suppresses repeat broadcasts within this many seconds of the last one, so a run of
+    # big wins in a row doesn't spam chat. 0 disables the cooldown.
+    cooldown-seconds: 30
     message: "&6&l⭐ &e{winner} &6just won &f{amount} &6off &f{loser} &6in a coinflip!"
 
   # Fires every {interval}th win in a row (5, 10, 15...), not just once.
@@ -285,3 +288,12 @@ leaderboard:
 update-check:
   enabled: true
   message: "&e&l(!) &eA new version of EndlessCoinflip is available: &f{version}"
+
+# =============================================
+#                  INTERNAL
+# =============================================
+# Tracks when the list-valued settings above were last synced to this version's bundled
+# defaults. Don't edit these — changing them can retrigger a one-time refresh of those
+# lists, overwriting any customisations to them.
+internal-config-version: 1
+internal-messages-version: 1

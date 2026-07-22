@@ -13,13 +13,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class ConfigManager {
 
     // Bumped only when a list-valued default (e.g. leaderboard.entry-lore, messages.yml's
     // "stats" list) changes and existing installs need a one-time refresh to pick it up.
-    // Tracked in an internal file rather than the user-facing config/messages files so it
-    // doesn't clutter what admins see when they open them.
     private static final int CONFIG_VERSION = 1;
     private static final int MESSAGES_VERSION = 1;
 
@@ -61,20 +63,21 @@ public class ConfigManager {
 
     private void updateConfigFile() {
         File configFile = new File(plugin.getDataFolder(), "config.yml");
-        boolean refreshLists = getStoredVersion("config-version") < CONFIG_VERSION;
+        boolean refreshLists = getStoredVersion(configFile, "internal-config-version") < CONFIG_VERSION;
         ConfigUpdater.update(configFile, plugin, "config.yml", refreshLists, plugin.getLogger());
-        if (refreshLists) setStoredVersion("config-version", CONFIG_VERSION);
+        if (refreshLists) setStoredVersion(configFile, "internal-config-version", CONFIG_VERSION);
     }
 
     private void loadMessages() {
+        File configFile = new File(plugin.getDataFolder(), "config.yml");
         File messagesFile = new File(plugin.getDataFolder(), "messages.yml");
         if (!messagesFile.exists()) {
             plugin.saveResource("messages.yml", false);
-            setStoredVersion("messages-version", MESSAGES_VERSION);
+            setStoredVersion(configFile, "internal-messages-version", MESSAGES_VERSION);
         } else {
-            boolean refreshLists = getStoredVersion("messages-version") < MESSAGES_VERSION;
+            boolean refreshLists = getStoredVersion(configFile, "internal-messages-version") < MESSAGES_VERSION;
             ConfigUpdater.update(messagesFile, plugin, "messages.yml", refreshLists, plugin.getLogger());
-            if (refreshLists) setStoredVersion("messages-version", MESSAGES_VERSION);
+            if (refreshLists) setStoredVersion(configFile, "internal-messages-version", MESSAGES_VERSION);
         }
         messagesConfig = YamlConfiguration.loadConfiguration(messagesFile);
 
@@ -85,23 +88,28 @@ public class ConfigManager {
         }
     }
 
-    private File internalStateFile() { return new File(plugin.getDataFolder(), "internal-state.yml"); }
-
-    private int getStoredVersion(String key) {
-        File file = internalStateFile();
-        if (!file.exists()) return 0;
-        return YamlConfiguration.loadConfiguration(file).getInt(key, 0);
+    private int getStoredVersion(File configFile, String key) {
+        if (!configFile.exists()) return 0;
+        return YamlConfiguration.loadConfiguration(configFile).getInt(key, 0);
     }
 
-    private void setStoredVersion(String key, int version) {
-        File file = internalStateFile();
-        YamlConfiguration yml = file.exists() ? YamlConfiguration.loadConfiguration(file) : new YamlConfiguration();
-        yml.set(key, version);
+    // Patches the version number in-place rather than YamlConfiguration#save, which would
+    // strip every comment out of config.yml.
+    private void setStoredVersion(File configFile, String key, int version) {
         try {
-            plugin.getDataFolder().mkdirs();
-            yml.save(file);
+            List<String> lines = Files.readAllLines(configFile.toPath(), StandardCharsets.UTF_8);
+            Pattern pattern = Pattern.compile("^(" + Pattern.quote(key) + ":\\s*)\\d+\\s*$");
+            for (int i = 0; i < lines.size(); i++) {
+                Matcher matcher = pattern.matcher(lines.get(i));
+                if (matcher.matches()) {
+                    lines.set(i, matcher.group(1) + version);
+                    Files.write(configFile.toPath(), (String.join("\n", lines) + "\n").getBytes(StandardCharsets.UTF_8));
+                    return;
+                }
+            }
+            plugin.getLogger().warning("Could not find '" + key + "' in config.yml to update.");
         } catch (IOException e) {
-            plugin.getLogger().warning("Failed to save internal-state.yml: " + e.getMessage());
+            plugin.getLogger().warning("Failed to update '" + key + "' in config.yml: " + e.getMessage());
         }
     }
 
@@ -154,6 +162,7 @@ public class ConfigManager {
 
     public boolean isBigWinBroadcastEnabled()   { return plugin.getConfig().getBoolean("broadcast.big-win.enabled", false); }
     public double getBigWinBroadcastThreshold() { return plugin.getConfig().getDouble("broadcast.big-win.threshold", 1_000_000); }
+    public int getBigWinBroadcastCooldownSeconds() { return plugin.getConfig().getInt("broadcast.big-win.cooldown-seconds", 0); }
 
     public String getBigWinBroadcastMessage(String... replacements) {
         String raw = plugin.getConfig().getString("broadcast.big-win.message");

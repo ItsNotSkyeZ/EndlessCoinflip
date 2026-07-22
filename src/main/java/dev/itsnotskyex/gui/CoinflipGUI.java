@@ -52,6 +52,8 @@ public class CoinflipGUI implements Listener {
         }
     }
 
+    private long lastBigWinBroadcastMillis = 0;
+
     public CoinflipGUI(EndlessCoinflip plugin) { this.plugin = plugin; }
 
     private String cfg(String key, String... r) { return plugin.getConfigManager().getMessage(key, r); }
@@ -60,8 +62,15 @@ public class CoinflipGUI implements Listener {
     private void announceBigWin(String winnerName, String loserName, double payout) {
         ConfigManager cm = plugin.getConfigManager();
         if (!cm.isBigWinBroadcastEnabled() || payout < cm.getBigWinBroadcastThreshold()) return;
+
+        long cooldownMillis = cm.getBigWinBroadcastCooldownSeconds() * 1000L;
+        long now = System.currentTimeMillis();
+        if (cooldownMillis > 0 && now - lastBigWinBroadcastMillis < cooldownMillis) return;
+
         String message = cm.getBigWinBroadcastMessage("winner", winnerName, "loser", loserName, "amount", CoinflipManager.fmt(payout));
-        if (message != null) plugin.getServer().broadcastMessage(message);
+        if (message == null) return;
+        plugin.getServer().broadcastMessage(message);
+        lastBigWinBroadcastMillis = now;
     }
 
     private void announceWinStreak(String winnerName, int streak) {

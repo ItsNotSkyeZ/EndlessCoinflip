@@ -64,6 +64,8 @@ public class CoinflipPlaceholders extends PlaceholderExpansion {
             case "streak" -> String.valueOf(data.getCurrentStreak());
             case "best_streak" -> String.valueOf(data.getBestStreak());
             case "ratio" -> ratio(data.getWins(), data.getLosses());
+            case "total_matches" -> String.valueOf(data.getWins() + data.getLosses());
+            case "net_profit" -> CoinflipManager.fmt(data.getTotalWon() - data.getTotalWagered());
             case "rank" -> rank(player);
             default -> null;
         };

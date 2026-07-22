@@ -119,6 +119,8 @@ If PlaceholderAPI is installed, EndlessCoinflip registers these placeholders aut
 | `%coinflip_best_streak%` | Player's best win streak |
 | `%coinflip_ratio%` | Player's win:loss ratio |
 | `%coinflip_rank%` | Player's leaderboard position, refreshed every `placeholders.rank-refresh-seconds` |
+| `%coinflip_total_matches%` | Player's total matches played (wins + losses) |
+| `%coinflip_net_profit%` | Player's total won minus total wagered (can be negative) |
 
 These only resolve for online players. Test them with `/papi parse <player> <placeholder>`.
 
